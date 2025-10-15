@@ -1,4 +1,4 @@
-PyRat
+PyRat ![icon](resources/various/pyrat.ico)
 ===================
 
-TODO
+Remi is Hungry. Help him get ALL the cheese.
