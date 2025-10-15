@@ -1,0 +1,18 @@
+[project]
+name = "pyrat"
+version = "0.1.0"
+description = "PyRat"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "configargparse>=1.7.1",
+    "numpy>=2.3.3",
+    "pygame>=2.6.1",
+]
+license = "MIT AND (Apache-2.0 OR BSD-2-Clause)"
+
+[dependency-groups]
+dev = [
+    "pre-commit>=4.3.0",
+    "ruff>=0.14.0",
+]
