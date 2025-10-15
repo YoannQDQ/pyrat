@@ -1,0 +1,18 @@
+#rat :AIs/Random.py
+rat : AIs/Moi.py
+#rat : AIs/XY.py
+#rat : AIs/Randomvoisin.py
+#rat : AIs/XYVoisin.py
+#rat : AIs/Dijkstra.py
+width : 3
+height : 2
+pieces : 1
+position_rat : 0,0
+position_cheese : 1,1
+#
+#
+window_width : 900
+nonsymmetric : true
+density : 0.2
+step : True
+mud_density : 0
