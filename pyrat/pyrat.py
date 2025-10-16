@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 #    Copyright  2017 Vincent Gripon (vincent.gripon@imt-atlatique.fr) and IMT Atlantique
 #
 #    This file is part of PyRat.
@@ -19,25 +18,27 @@
 
 # Imports
 import importlib.util
+import logging
 import multiprocessing as mp
 import os
 import queue
+import random
 import signal
 import sys
 import time
 import traceback
+from pathlib import Path
 from queue import Queue
 from threading import Thread
 
 import pygame
 
-from imports.display import *
-from imports.maze import *
-from imports.parameters import *
+from pyrat.core.bot_utils import MOVE_E, MOVE_N, MOVE_O, MOVE_S, neighbors_map
+from pyrat.core.display import *
+from pyrat.core.maze import *
+from pyrat.core.parameters import *
 
-if args.import_keras:
-    import keras
-
+logger = logging.getLogger(__name__)
 
 # Sound effects. There are three sounds corresponding to any combination of players taking pieces of cheese at a given moment
 try:
@@ -71,30 +72,30 @@ def play_sound(effect):
 def player(pet, filename, q_in, q_out, q_quit, width, height, preparation_time, turn_time):
     # First we try to launch a regular AI
     try:
-        print("filename=", filename)
+        logger.info(f"filename={filename}")
         player = importlib.util.spec_from_file_location("player", filename)
-        print("player=", player)
+        logger.info(f"player={player}")
         module = importlib.util.module_from_spec(player)
-        print("module=", module)
+        logger.info(f"module={module}")
         player.loader.exec_module(module)
-        name = filename.replace("\\", "/").split("/")[-1].split(".")[-2]
-        preprocessing = module.preprocessing
-        # turn = module.turn # Boiteau 24/04/2025
-        turn = module.go  # Boiteau 24/04/2025
-        existence = True
-    # In case there is a problem, we launch the dummy AI which basically does nothing
+        name = Path(filename).stem
+        preprocessing = getattr(module, "preprocessing", lambda *_: None)
+        go = module.go
+    # In case there is a problem, we launch the dummy AI which takes a random decision
     except:
         if filename != "":
             var = traceback.format_exc()
-            print("Error: " + var, file=sys.stderr)
-            print("Error while loading player controlling " + pet + ", dummy player loaded instead", file=sys.stderr)
-        player = importlib.util.spec_from_file_location("player", "imports/dummyplayer.py")
-        module = importlib.util.module_from_spec(player)
-        player.loader.exec_module(module)
-        name = module.TEAM_NAME
-        preprocessing = module.preprocessing
-        turn = module.turn
-        existence = False
+            logger.error(var)
+            logger.error(f"Error while loading player controlling {pet} dummy player loaded instead")
+
+        name = "DUMMY"
+
+        def go(*_):
+            return random.choice([MOVE_N, MOVE_S, MOVE_E, MOVE_O])
+
+        def preprocessing(*_):
+            return None
+
     # We communicate our name to the main program
     q_out.put(name)
     # And we get useful information in return
@@ -137,7 +138,8 @@ def player(pet, filename, q_in, q_out, q_quit, width, height, preparation_time, 
             try:
                 before = time.time()
                 # essayer de mettre ici une saisie dans le cas "STEP"
-                decision = turn(maze, width, height, player1_location, player2_location, score1, score2, pieces_of_cheese, turn_time)
+                # decision = go(maze, width, height, player1_location, player2_location, score1, score2, pieces_of_cheese, turn_time)
+                decision = go(neighbors_map(maze), player1_location, pieces_of_cheese)
                 after = time.time()
                 turn_delay = turn_delay + (after - before)
                 turn_delay_count = turn_delay_count + 1
@@ -175,20 +177,16 @@ def convert_time_to_int(datetime):
 
 # Convert the decision taken by an AI into an actual new location
 def cell_of_decision(location, decision):
-    try:
-        a, b = location
-        if decision == "N":  # "U" # Boiteau 24/04/2025
-            return (a, b + 1)
-        elif decision == "S":  # "D" # Boiteau 24/04/2025
-            return (a, b - 1)
-        elif decision == "O":  # "L" # Boiteau 24/04/2025
-            return (a - 1, b)
-        elif decision == "E":  # "R" # Boiteau 24/04/2025
-            return (a + 1, b)
-        else:
-            return (-1, -1)
-    except:
-        return (-1, -1)
+    a, b = location
+    if decision == MOVE_N:
+        return (a, b + 1)
+    if decision == MOVE_S:
+        return (a, b - 1)
+    if decision == MOVE_O:
+        return (a - 1, b)
+    if decision == MOVE_E:
+        return (a + 1, b)
+    return (-1, -1)
 
 
 # This function actually moves a player according to its decision and returns new info
@@ -240,12 +238,12 @@ def run_game(screen, infoObject):
     global is_human_rat, is_human_python
     pygame.K_a, pygame.K_q = pygame.K_q, pygame.K_a
     # Generate connected maze
-    debug("Generating maze", 1)
+    logger.info("Generating maze")
     if not (args.random_seed):
         random_seed = random.randint(0, sys.maxsize)
     else:
         random_seed = args.random_seed
-    debug("Using seed " + str(random_seed), 1)
+    logger.debug("Using seed " + str(random_seed))
     width, height, pieces_of_cheese, maze = generate_maze(
         args.width,
         args.height,
@@ -266,17 +264,30 @@ def run_game(screen, infoObject):
         player2_location = affecter(args.position_python)
 
         # Generate cheese
-    debug("Generating pieces of cheese", 1)
+    logger.debug("Generating pieces of cheese")
     if args.random_cheese:
         random.seed()
     if pieces_of_cheese == []:
         if args.position_cheese:
             pieces_of_cheese, player1_location, player2_location = generate_pieces_of_cheese_notrandom(
-                args.pieces, width, height, not (args.nonsymmetric), player1_location, player2_location, args.start_random, args.position_cheese
+                args.pieces,
+                width,
+                height,
+                not (args.nonsymmetric),
+                player1_location,
+                player2_location,
+                args.start_random,
+                args.position_cheese,
             )
         else:
             pieces_of_cheese, player1_location, player2_location = generate_pieces_of_cheese(
-                args.pieces, width, height, not (args.nonsymmetric), player1_location, player2_location, args.start_random
+                args.pieces,
+                width,
+                height,
+                not (args.nonsymmetric),
+                player1_location,
+                player2_location,
+                args.start_random,
             )
     # HGG
     # Ex1 : maze = {(0, 0): {(1, 0): 1}, (0, 1): {(1, 1): 1}, (0, 2): {(1, 2): 1, (0, 3): 1}, (0, 3): {(1, 3): 1, (0, 2): 1}, (0, 4): {(1, 4): 1}, (1, 0): {(0, 0): 1, (2, 0): 1}, (1, 1): {(0, 1): 1, (1, 2): 1, (2, 1): 1}, (1, 2): {(0, 2): 1, (1, 1): 1}, (1, 3): {(0, 3): 1, (1, 4): 1}, (1, 4): {(0, 4): 1, (2, 4): 1, (1, 3): 1}, (2, 0): {(1, 0): 1, (2, 1): 1}, (2, 1): {(1, 1): 1, (2, 2): 1, (2, 0): 1}, (2, 2): {(2, 1): 1}, (2, 3): {(2, 4): 1}, (2, 4): {(2, 3): 1, (1, 4): 1, (3, 4): 1}, (3, 0): {(4, 0): 1}, (3, 1): {(3, 2): 1}, (3, 2): {(3, 3): 1, (3, 1): 1}, (3, 3): {(3, 4): 1, (4, 3): 1, (3, 2): 1}, (3, 4): {(3, 3): 1, (4, 4): 1, (2, 4): 1}, (4, 0): {(3, 0): 1, (4, 1): 1}, (4, 1): {(4, 0): 1, (4, 2): 1}, (4, 2): {(4, 3): 1, (4, 1): 1}, (4, 3): {(4, 2): 1, (3, 3): 1}, (4, 4): {(3, 4): 1}}
@@ -310,7 +321,7 @@ def run_game(screen, infoObject):
         savefile.write(str(player2_location) + "\n")
 
     # Create communications queues with players
-    debug("Generating pipes with players", 1)
+    logger.debug("Generating pipes with players")
     q1_in = mp.Queue()
     q2_in = mp.Queue()
     q1_out = mp.Queue()
@@ -319,7 +330,7 @@ def run_game(screen, infoObject):
     q2_quit = mp.Queue()
 
     # Instantiate players
-    debug("Instantiating players", 1)
+    logger.debug("Instantiating players")
     if not (is_human_rat):
         p1 = mp.Process(
             target=player,
@@ -358,7 +369,7 @@ def run_game(screen, infoObject):
         q2_out.put("human")
 
     # Initialize stats
-    debug("Creating variables", 1)
+    logger.debug("Creating variables")
     score1 = 0
     score2 = 0
     stuck1 = 0
@@ -376,12 +387,12 @@ def run_game(screen, infoObject):
     win2 = 0
 
     # Retrieve names
-    debug("Reading names of players", 1)
+    logger.debug("Reading names of players")
     p1name = str(q1_out.get())
     p2name = str(q2_out.get())
 
     # Start rendering
-    debug("Starting rendering", 1)
+    logger.debug("Starting rendering")
     q_render = Queue()
     q_render_in = Queue()
     q_info = Queue()
@@ -415,7 +426,7 @@ def run_game(screen, infoObject):
         draw.start()
 
     # Send initial information to players
-    debug("Send initial information to players and start preprocessing", 1)
+    logger.debug("Send initial information to players and start preprocessing")
     initial_info(q1_in, player1_location, player2_location, maze, pieces_of_cheese)
     initial_info(q2_in, player2_location, player1_location, maze, pieces_of_cheese)
 
@@ -425,7 +436,7 @@ def run_game(screen, infoObject):
 
     # Main loop
 
-    debug("Starting game", 1)
+    logger.info("Starting game")
     while 1:
         # First tell players if game is finished
         q1_quit.put(False)
@@ -460,12 +471,29 @@ def run_game(screen, infoObject):
             play_sound(effect_right)
 
         # Send drawing informations to graphical interface
-        q_render.put((pieces_of_cheese, player1_location, player2_location, score1, score2, moves1, moves2, miss1, miss2, stucks1, stucks2))
+        q_render.put(
+            (
+                pieces_of_cheese,
+                player1_location,
+                player2_location,
+                score1,
+                score2,
+                moves1,
+                moves2,
+                miss1,
+                miss2,
+                stucks1,
+                stucks2,
+            )
+        )
 
         # Check if one of the players won
         if args.rat != "" and args.python != "":
             if score1 == score2 and score1 >= args.pieces / 2:
-                send_info("The Rat(" + p1name + ") and the Python (" + p2name + ") got the same number of pieces of cheese!", q_info)
+                send_info(
+                    "The Rat(" + p1name + ") and the Python (" + p2name + ") got the same number of pieces of cheese!",
+                    q_info,
+                )
                 break
             if score1 > args.pieces / 2:
                 send_info("The Rat (" + p1name + ") won the match!", q_info)
@@ -551,21 +579,19 @@ def run_game(screen, infoObject):
                 for event in pygame.event.get():
                     if event.type == pygame.KEYDOWN and (event.key == pygame.K_n or event.key == pygame.K_UP):
                         sortir = True
-                        decision1 = "N"
+                        decision1 = MOVE_N
                     if event.type == pygame.KEYDOWN and (event.key == pygame.K_o or event.key == pygame.K_LEFT):
                         sortir = True
-                        decision1 = "O"
+                        decision1 = MOVE_O
                     if event.type == pygame.KEYDOWN and (event.key == pygame.K_e or event.key == pygame.K_RIGHT):
                         sortir = True
-                        decision1 = "E"
+                        decision1 = MOVE_E
                     if event.type == pygame.KEYDOWN and (event.key == pygame.K_s or event.key == pygame.K_DOWN):
                         sortir = True
-                        decision1 = "S"
-                        print("User S")
+                        decision1 = MOVE_S
                     if event.type == pygame.KEYDOWN and event.key == pygame.K_c:
                         sortir = True
                     if event.type == pygame.QUIT or (event.type == pygame.KEYDOWN and event.key == pygame.K_q):
-                        print("User exit")
                         quitter = event
                         sortir = True
             if quitter:
@@ -687,9 +713,9 @@ def run_game(screen, infoObject):
 
 def main():
     # Start program
-    debug("Starting pygame...")
+    logger.info("Starting pygame...")
     pygame.init()
-    debug("Defining screen object...")
+    logger.info("Defining screen object...")
     if not (args.nodrawing):
         infoObject = pygame.display.Info()
         image_icon = pygame.image.load("resources/various/pyrat.ico")
@@ -705,7 +731,7 @@ def main():
         screen = ""
         infoObject = ""
     # Run first game
-    debug("Starting first game")
+    logger.info("Starting first game")
     result = 0
     try:
         result = run_game(screen, infoObject)
@@ -717,7 +743,7 @@ def main():
             exit()
         print("fermeture")
     if args.resultat:
-        debug("Writing stats and exiting")
+        logger.info("Writing stats and exiting")
         result = {k: v / args.tests for k, v in result.items()}
         # Print stats and exit
         print("{")

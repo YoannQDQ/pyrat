@@ -15,13 +15,16 @@
 #    You should have received a copy of the GNU General Public License
 #    along with PyRat.  If not, see <http://www.gnu.org/licenses/>.
 
+import logging
 import sys
 from pathlib import Path
 
 import configargparse as argparse
 
+ROOT_PATH = Path(__file__).parent.parent.parent
+
 # Parse arguments
-parser = argparse.ArgumentParser(default_config_files=[str(Path(__file__).parent.parent / "parametres.txt")])
+parser = argparse.ArgumentParser(default_config_files=[str(ROOT_PATH / "config.ini")])
 parser.add_argument("--rat", type=str, metavar="rat_file", help="Program to control the rat", default="")
 parser.add_argument("--python", type=str, metavar="python_file", help="Program to control the python", default="")
 parser.add_argument("-x", "--width", type=int, metavar="x", help="Width of the maze", default=21)
@@ -43,7 +46,7 @@ parser.add_argument("--nodrawing", action="store_true", help="Desactivate drawin
 parser.add_argument("--tests", type=int, metavar="tests", help="Number of tests (for statistics)", default=1)
 parser.add_argument("--maze_file", metavar="maze_file", help="Specific maze file to load", default="")
 parser.add_argument("--fullscreen", action="store_true", help='Start game in fullscreen (you can press the "f" key instead)')
-parser.add_argument("--debug", type=int, metavar="debug_level", help="Debug level", default=0)
+parser.add_argument("--debug_level", type=int, metavar="debug_level", help="Debug level", default=logging.INFO)
 parser.add_argument("--start_random", action="store_true", help="Players start at random location in the maze")
 parser.add_argument("--save", action="store_true", help="Save game to file")
 parser.add_argument(
@@ -64,7 +67,6 @@ parser.add_argument("--position_python", type=str, metavar="python_location_file
 parser.add_argument("--step", action="store_true", help="Perform step by step mode")
 parser.add_argument("--resultat", action="store_true", help="Print the result of the game at the end")
 parser.add_argument("--postprocessing", action="store_true", help="Perform postprocessing (useful for tournaments)")
-parser.add_argument("--import_keras", action="store_true", help="Import keras when loading pyrat to avoid multiple loads")
 parser.add("-c", "--config", required=False, is_config_file=True, help="config file path (overrides other config files)")
 args = parser.parse_args()
 args.window_height = int(10 * args.window_width / 16)
@@ -77,21 +79,11 @@ if args.nodrawing:
     args.auto_exit = True
 if args.tests > 1:
     args.auto_exit = True
-if args.python == "human":
-    is_human_python = True
-else:
-    is_human_python = False
-if args.rat == "human":
-    is_human_rat = True
-else:
-    is_human_rat = False
+is_human_python = args.python == "human"
+is_human_rat = args.rat == "human"
+
 if args.width < 1 or args.height < 1:
     sys.exit("maze is too small")
 
 
-# Debugging function
-def debug(text, debug_level=0):
-    if debug_level < args.debug:
-        print("\t" * debug_level + text, file=sys.stderr)
-    else:
-        ()
+logging.basicConfig(format="[%(levelname)s] - %(name)s: %(message)s", level=args.debug_level)

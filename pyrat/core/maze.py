@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 #    Copyright Â© 2017 Vincent Gripon (vincent.gripon@imt-atlatique.fr) and IMT Atlantique
 #
 #    This file is part of PyRat.
@@ -19,8 +18,7 @@
 
 import random
 import sys
-
-import imports.parameters
+from pathlib import Path
 
 
 # compute the connected component of a given initial cell with depth-first search
@@ -35,14 +33,12 @@ def connected_region(maze, cell, connected, possible_border):
 def gen_mud(mud_density, mud_range):
     if random.uniform(0, 1) < mud_density:
         return random.randrange(2, mud_range + 1)
-    else:
-        return 1
+    return 1
 
 
 def generate_maze(width, height, target_density, connected, symmetry, mud_density, mud_range, maze_file, seed):
     if maze_file != "":
-        with open(maze_file, "r") as content_file:
-            content = content_file.read()
+        content = Path(maze_file).read_text()
         lines = content.split("\n")
         width = int(lines[0])
         height = int(lines[1])
@@ -161,10 +157,7 @@ def generate_maze(width, height, target_density, connected, symmetry, mud_densit
                 connected_region(maze, b, connected, possible_border)
                 possible_border.append(b)
                 if symmetry:
-                    if (
-                        connected[width - 1 - bi][height - 1 - bj] == 0
-                        and connected[width - 1 - ai][height - 1 - aj] == 1
-                    ):
+                    if connected[width - 1 - bi][height - 1 - bj] == 0 and connected[width - 1 - ai][height - 1 - aj] == 1:
                         connected[width - 1 - bi][height - 1 - bj] = 1
                         connected_region(maze, bsym, connected, possible_border)
                         possible_border.append(bsym)
@@ -173,9 +166,7 @@ def generate_maze(width, height, target_density, connected, symmetry, mud_densit
 
 
 # Generate pieces of cheese
-def generate_pieces_of_cheese(
-    nb_pieces, width, height, symmetry, player1_location, player2_location, start_random, cheese_location=[]
-):
+def generate_pieces_of_cheese(nb_pieces, width, height, symmetry, player1_location, player2_location, start_random, cheese_location=[]):
     if start_random:
         remaining = nb_pieces + 2
     else:
@@ -193,9 +184,7 @@ def generate_pieces_of_cheese(
     considered = []
     if symmetry:
         if nb_pieces % 2 == 1 and (width % 2 == 0 or height % 2 == 0):
-            sys.exit(
-                "The maze has even width or even height and thus cannot contain an odd number of pieces of cheese if symmetric."
-            )
+            sys.exit("The maze has even width or even height and thus cannot contain an odd number of pieces of cheese if symmetric.")
         if nb_pieces % 2 == 1 and len(cheese_location) == 0:
             pieces.append((width // 2, height // 2))
             considered.append((width // 2, height // 2))
@@ -234,9 +223,7 @@ def generate_pieces_of_cheese(
     return pieces[:-2], pieces[-2], pieces[-1]
 
 
-def generate_pieces_of_cheese_notrandom(
-    nb_pieces, width, height, symmetry, player1_location, player2_location, start_random, cheese_location
-):
+def generate_pieces_of_cheese_notrandom(nb_pieces, width, height, symmetry, player1_location, player2_location, start_random, cheese_location):
     position = []
     try:
         test = open(cheese_location)
@@ -252,6 +239,4 @@ def generate_pieces_of_cheese_notrandom(
             position.append((x, y))
         else:
             print("cheese_location invalid argument", file=sys.stderr)
-    return generate_pieces_of_cheese(
-        nb_pieces, width, height, symmetry, player1_location, player2_location, start_random, cheese_location=position
-    )
+    return generate_pieces_of_cheese(nb_pieces, width, height, symmetry, player1_location, player2_location, start_random, cheese_location=position)

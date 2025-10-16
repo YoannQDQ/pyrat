@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 #    Copyright Â© 2017 Vincent Gripon (vincent.gripon@imt-atlatique.fr) and IMT Atlantique
 #
 #    This file is part of PyRat.
@@ -17,17 +16,18 @@
 #    You should have received a copy of the GNU General Public License
 #    along with PyRat.  If not, see <http://www.gnu.org/licenses/>.
 
-import datetime
+import logging
 import random
+import sys
 
 import pygame
-from pygame import locals
 
-from imports.parameters import *
+from pyrat.core.parameters import args
+
+logger = logging.getLogger("display")
 
 
 def image_of_maze(maze, tiles, image_tile, image_wall, image_corner, image_mud, offset_x, offset_y, scale, width, height, screen, window_height):
-    global mud_range
     for i in range(width):
         for j in range(height):
             screen.blit(image_tile[tiles[i][j]], (offset_x + scale * i, window_height - offset_y - scale * (j + 1)))
@@ -38,29 +38,59 @@ def image_of_maze(maze, tiles, image_tile, image_wall, image_corner, image_mud, 
             elif maze[(i, j)][(i - 1, j)] > 1:
                 screen.blit(image_mud, (offset_x + scale * i, window_height - offset_y - scale * (j + 1)))
             if not ((i + 1, j) in maze[(i, j)]):
-                screen.blit(pygame.transform.rotate(image_wall, 180), (offset_x + scale * i, window_height - offset_y - scale * (j + 1)))
+                screen.blit(
+                    pygame.transform.rotate(image_wall, 180),
+                    (offset_x + scale * i, window_height - offset_y - scale * (j + 1)),
+                )
             elif maze[(i, j)][(i + 1, j)] > 1:
-                screen.blit(pygame.transform.rotate(image_mud, 180), (offset_x + scale * i, window_height - offset_y - scale * (j + 1)))
+                screen.blit(
+                    pygame.transform.rotate(image_mud, 180),
+                    (offset_x + scale * i, window_height - offset_y - scale * (j + 1)),
+                )
             if not ((i, j + 1) in maze[(i, j)]):
-                screen.blit(pygame.transform.rotate(image_wall, 270), (offset_x + scale * i, window_height - offset_y - scale * (j + 1)))
+                screen.blit(
+                    pygame.transform.rotate(image_wall, 270),
+                    (offset_x + scale * i, window_height - offset_y - scale * (j + 1)),
+                )
             elif maze[(i, j)][(i, j + 1)] > 1:
-                screen.blit(pygame.transform.rotate(image_mud, 270), (offset_x + scale * i, window_height - offset_y - scale * (j + 1)))
+                screen.blit(
+                    pygame.transform.rotate(image_mud, 270),
+                    (offset_x + scale * i, window_height - offset_y - scale * (j + 1)),
+                )
             if not ((i, j - 1) in maze[(i, j)]):
-                screen.blit(pygame.transform.rotate(image_wall, 90), (offset_x + scale * i, window_height - offset_y - scale * (j + 1)))
+                screen.blit(
+                    pygame.transform.rotate(image_wall, 90),
+                    (offset_x + scale * i, window_height - offset_y - scale * (j + 1)),
+                )
             elif maze[(i, j)][(i, j - 1)] > 1:
-                screen.blit(pygame.transform.rotate(image_mud, 90), (offset_x + scale * i, window_height - offset_y - scale * (j + 1)))
+                screen.blit(
+                    pygame.transform.rotate(image_mud, 90),
+                    (offset_x + scale * i, window_height - offset_y - scale * (j + 1)),
+                )
     for i in range(width):
         screen.blit(pygame.transform.rotate(image_wall, 270), (offset_x + scale * i, window_height - offset_y))
-        screen.blit(pygame.transform.rotate(image_wall, 90), (offset_x + scale * i, window_height - offset_y - scale * (height + 1)))
+        screen.blit(
+            pygame.transform.rotate(image_wall, 90),
+            (offset_x + scale * i, window_height - offset_y - scale * (height + 1)),
+        )
     for j in range(height):
         screen.blit(image_wall, (offset_x + scale * width, window_height - offset_y - scale * (j + 1)))
         screen.blit(pygame.transform.rotate(image_wall, 180), (offset_x - scale, window_height - offset_y - scale * (j + 1)))
     for i in range(width + 1):
         for j in range(height + 1):
             screen.blit(image_corner, (offset_x + scale * i, window_height - offset_y - scale * j))
-            screen.blit(pygame.transform.rotate(image_corner, 90), (offset_x + scale * i, window_height - offset_y - scale * (j + 1)))
-            screen.blit(pygame.transform.rotate(image_corner, 180), (offset_x + scale * (i - 1), window_height - offset_y - scale * (j + 1)))
-            screen.blit(pygame.transform.rotate(image_corner, 270), (offset_x + scale * (i - 1), window_height - offset_y - scale * j))
+            screen.blit(
+                pygame.transform.rotate(image_corner, 90),
+                (offset_x + scale * i, window_height - offset_y - scale * (j + 1)),
+            )
+            screen.blit(
+                pygame.transform.rotate(image_corner, 180),
+                (offset_x + scale * (i - 1), window_height - offset_y - scale * (j + 1)),
+            )
+            screen.blit(
+                pygame.transform.rotate(image_corner, 270),
+                (offset_x + scale * (i - 1), window_height - offset_y - scale * j),
+            )
 
 
 def draw_pieces_of_cheese(pieces_of_cheese, image_cheese, offset_x, offset_y, scale, width, height, screen, window_height):
@@ -68,7 +98,19 @@ def draw_pieces_of_cheese(pieces_of_cheese, image_cheese, offset_x, offset_y, sc
         screen.blit(image_cheese, (offset_x + scale * i, window_height - offset_y - scale * (j + 1)))
 
 
-def draw_players(player1_location, player2_location, image_python, image_rat, offset_x, offset_y, scale, width, height, screen, window_height):
+def draw_players(
+    player1_location,
+    player2_location,
+    image_python,
+    image_rat,
+    offset_x,
+    offset_y,
+    scale,
+    width,
+    height,
+    screen,
+    window_height,
+):
     i, j = player1_location
     screen.blit(image_python, (offset_x + scale * i, window_height - offset_y - scale * (j + 1)))
     i, j = player2_location
@@ -88,7 +130,6 @@ font_sizes = [50, 25, 50, 25, 50, 50, 50]
 
 
 def draw_text(text, color, max_size, index_size, x, y, screen):
-    global font_sizes
     font = pygame.font.SysFont("monospace", font_sizes[index_size])
     label = font.render(text, 1, color)
     while label.get_rect().width > max_size:
@@ -119,17 +160,81 @@ def draw_scores(
     stuck2,
 ):
     if player1_is_alive:
-        draw_text("Score: " + str(score1), (255, 255, 255), window_width / 6, 0, int(window_width / 12), window_width / 3 + 50, screen)
+        draw_text(
+            "Score: " + str(score1),
+            (255, 255, 255),
+            window_width / 6,
+            0,
+            int(window_width / 12),
+            window_width / 3 + 50,
+            screen,
+        )
         draw_text(p1name, (255, 255, 255), window_width / 6, 5, int(window_width / 12), window_width / 3, screen)
-        draw_text("Moves: " + str(moves1), (0, 255, 0), window_width / 6, 1, int(window_width / 12), window_width / 3 + 150, screen)
-        draw_text("Miss: " + str(miss1), (255, 0, 0), window_width / 6, 1, int(window_width / 12), window_width / 3 + 180, screen)
-        draw_text("Mud: " + str(stuck1), (255, 0, 0), window_width / 6, 1, int(window_width / 12), window_width / 3 + 210, screen)
+        draw_text(
+            "Moves: " + str(moves1),
+            (0, 255, 0),
+            window_width / 6,
+            1,
+            int(window_width / 12),
+            window_width / 3 + 150,
+            screen,
+        )
+        draw_text(
+            "Miss: " + str(miss1),
+            (255, 0, 0),
+            window_width / 6,
+            1,
+            int(window_width / 12),
+            window_width / 3 + 180,
+            screen,
+        )
+        draw_text(
+            "Mud: " + str(stuck1),
+            (255, 0, 0),
+            window_width / 6,
+            1,
+            int(window_width / 12),
+            window_width / 3 + 210,
+            screen,
+        )
     if player2_is_alive:
-        draw_text("Score: " + str(score2), (255, 255, 255), window_width / 6, 2, int(11 * window_width / 12), window_width / 3 + 50, screen)
+        draw_text(
+            "Score: " + str(score2),
+            (255, 255, 255),
+            window_width / 6,
+            2,
+            int(11 * window_width / 12),
+            window_width / 3 + 50,
+            screen,
+        )
         draw_text(p2name, (255, 255, 255), window_width / 6, 6, int(11 * window_width / 12), window_width / 3, screen)
-        draw_text("Moves: " + str(moves2), (0, 255, 0), window_width / 6, 3, int(11 * window_width / 12), window_width / 3 + 150, screen)
-        draw_text("Miss: " + str(miss2), (255, 0, 0), window_width / 6, 3, int(11 * window_width / 12), window_width / 3 + 180, screen)
-        draw_text("Mud: " + str(stuck2), (255, 0, 0), window_width / 6, 3, int(11 * window_width / 12), window_width / 3 + 210, screen)
+        draw_text(
+            "Moves: " + str(moves2),
+            (0, 255, 0),
+            window_width / 6,
+            3,
+            int(11 * window_width / 12),
+            window_width / 3 + 150,
+            screen,
+        )
+        draw_text(
+            "Miss: " + str(miss2),
+            (255, 0, 0),
+            window_width / 6,
+            3,
+            int(11 * window_width / 12),
+            window_width / 3 + 180,
+            screen,
+        )
+        draw_text(
+            "Mud: " + str(stuck2),
+            (255, 0, 0),
+            window_width / 6,
+            3,
+            int(11 * window_width / 12),
+            window_width / 3 + 210,
+            screen,
+        )
 
 
 def display_exit():
@@ -219,11 +324,23 @@ def build_background(
     player1_is_alive,
     player2_is_alive,
 ):
-    global font_sizes
     screen.fill((0, 0, 0))
-    font_sizes = [50, 25, 50, 25, 50, 50, 50]
     maze_image = screen.copy()
-    image_of_maze(maze, tiles, image_tile, image_wall, image_corner, image_mud, offset_x, offset_y, scale, width, height, maze_image, window_height)
+    image_of_maze(
+        maze,
+        tiles,
+        image_tile,
+        image_wall,
+        image_corner,
+        image_mud,
+        offset_x,
+        offset_y,
+        scale,
+        width,
+        height,
+        maze_image,
+        window_height,
+    )
 
     if player1_is_alive:
         maze_image.blit(image_portrait_rat, (int(window_width / 12 - image_portrait_python.get_rect().width / 2), 15))
@@ -254,9 +371,7 @@ def run(
     screen,
     infoObject,
 ):
-    global args
-
-    debug("Starting rendering", 2)
+    logger.log(2, "Starting rendering")
     window_width, window_height = pygame.display.get_surface().get_size()
     turn_time = args.turn_time
     (
@@ -277,7 +392,7 @@ def run(
         image_tile,
     ) = init_coords_and_images(width, height, player1_is_alive, player2_is_alive, window_width, window_height)
 
-    debug("Defining constants", 2)
+    logger.log(2, "Defining constants")
     clock = pygame.time.Clock()
     new_player1_location = player1_location
     new_player2_location = player2_location
@@ -294,7 +409,7 @@ def run(
     stuck1 = 0
     stuck2 = 0
 
-    debug("Trying to initialize Joystick", 2)
+    logger.log(2, "Trying to initialize Joystick")
     pygame.joystick.init()
     try:
         j0 = pygame.joystick.Joystick(0)
@@ -304,9 +419,9 @@ def run(
         j1.init()
         print("Enabled joystick: " + j1.get_name() + " with " + str(j1.get_numaxes()) + " axes", file=sys.stderr)
     except pygame.error:
-        ()
+        pass
 
-    debug("Building background image", 2)
+    logger.log(2, "Building background image")
     maze_image = build_background(
         screen,
         maze,
@@ -332,9 +447,9 @@ def run(
 
     text_info = ""
 
-    debug("Starting main loop", 2)
+    logger.log(2, "Starting main loop")
     while q_quit.empty():
-        debug("Checking events", 2)
+        logger.log(2, "Checking events")
         for event in pygame.event.get():
             if event.type == pygame.QUIT or (event.type == pygame.KEYDOWN and (event.key == pygame.K_q or event.key == pygame.K_ESCAPE)):
                 q_quit.put("sortir")
@@ -405,7 +520,7 @@ def run(
                     play(q2_out, "D")
         # if not(q_quit.empty()):
         #    break
-        debug("Processing joysticks", 2)
+        logger.log(2, "Processing joysticks")
         try:
             x, y = j0.get_axis(3), j0.get_axis(4)
             if x < -0.7:
@@ -417,7 +532,7 @@ def run(
             if y > 0.7:
                 play(q1_out, "D")
         except:
-            ()
+            pass
         try:
             x, y = j1.get_axis(3), j1.get_axis(4)
             if x < -0.7:
@@ -429,10 +544,22 @@ def run(
             if y > 0.7:
                 play(q2_out, "D")
         except:
-            ()
-        debug("Looking for updates from core program", 2)
+            pass
+        logger.log(2, "Looking for updates from core program")
         while not (q.empty()):
-            pieces_of_cheese, nnew_player1_location, nnew_player2_location, score1, score2, moves1, moves2, miss1, miss2, stuck1, stuck2 = q.get()
+            (
+                pieces_of_cheese,
+                nnew_player1_location,
+                nnew_player2_location,
+                score1,
+                score2,
+                moves1,
+                moves2,
+                miss1,
+                miss2,
+                stuck1,
+                stuck2,
+            ) = q.get()
             if not (args.desactivate_animations):
                 if nnew_player1_location != new_player1_location:
                     time_to_go1 = pygame.time.get_ticks() + turn_time * maze[new_player1_location][nnew_player1_location]
@@ -446,7 +573,7 @@ def run(
                 player1_location = new_player1_location
                 player2_location = new_player2_location
 
-        debug("Starting draw", 2)
+        logger.log(2, "Starting draw")
         screen.fill((0, 0, 0))
         screen.blit(maze_image, (0, 0))
 
@@ -485,10 +612,32 @@ def run(
                 else:
                     image2 = pygame.transform.rotate(image_moving_python, 180)
             draw_players_animate(
-                player1_draw_location, player2_draw_location, image1, image2, offset_x, offset_y, scale, width, height, screen, window_height
+                player1_draw_location,
+                player2_draw_location,
+                image1,
+                image2,
+                offset_x,
+                offset_y,
+                scale,
+                width,
+                height,
+                screen,
+                window_height,
             )
         else:
-            draw_players(player1_location, player2_location, image_rat, image_python, offset_x, offset_y, scale, width, height, screen, window_height)
+            draw_players(
+                player1_location,
+                player2_location,
+                image_rat,
+                image_python,
+                offset_x,
+                offset_y,
+                scale,
+                width,
+                height,
+                screen,
+                window_height,
+            )
         draw_scores(
             p1name,
             score1,
@@ -525,14 +674,14 @@ def run(
                     screen,
                 )
 
-        debug("Drawing on screen", 2)
+        logger.log(2, "Drawing on screen")
         pygame.display.flip()
         if not (args.desactivate_animations):
             clock.tick(60)
         else:
             if not (args.synchronous):
                 clock.tick(1000 / turn_time)
-    debug("Exiting rendering", 2)
+    logger.log(2, "Exiting rendering")
     q_render_in.put("quit")
     if is_human_python:
         q2_out.put("")
