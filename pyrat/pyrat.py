@@ -71,23 +71,29 @@ def play_sound(effect):
 # Function to handle a player, this is intended to be launched by a separate process
 def player(pet, filename, q_in, q_out, q_quit, width, height, preparation_time, turn_time):
     # First we try to launch a regular AI
-    try:
-        logger.info(f"filename={filename}")
-        player = importlib.util.spec_from_file_location("player", filename)
-        logger.info(f"player={player}")
-        module = importlib.util.module_from_spec(player)
-        logger.info(f"module={module}")
-        player.loader.exec_module(module)
-        name = Path(filename).stem
-        preprocessing = getattr(module, "preprocessing", lambda *_: None)
-        go = module.go
-    # In case there is a problem, we launch the dummy AI which takes a random decision
-    except:
-        if filename != "":
-            var = traceback.format_exc()
-            logger.error(var)
+
+    go = None
+
+    if filename != "":
+        try:
+            if not Path(filename).is_absolute():
+                filename = "bots/" + filename
+            filename = Path(filename).with_suffix(".py")
+            logger.info(f"filename={filename}")
+            player = importlib.util.spec_from_file_location("player", filename)
+            logger.info(f"player={player}")
+            module = importlib.util.module_from_spec(player)
+            logger.info(f"module={module}")
+            player.loader.exec_module(module)
+            name = Path(filename).stem
+            preprocessing = getattr(module, "preprocessing", lambda *_: None)
+            go = module.go
+        except Exception as e:
+            logger.error(e)
             logger.error(f"Error while loading player controlling {pet} dummy player loaded instead")
 
+    # In case there is a problem, we launch the dummy AI which takes a random decision
+    if go is None:
         name = "DUMMY"
 
         def go(*_):
@@ -508,7 +514,7 @@ def run_game(screen, infoObject):
                 send_info("The Rat (" + p1name + ") got all pieces of cheese!", q_info)
                 win1 = win1 + 1
                 break
-            elif score2 >= args.pieces:
+            if score2 >= args.pieces:
                 send_info("The Python (" + p2name + ") got all pieces of cheese!", q_info)
                 win2 = win2 + 1
                 break

@@ -11,11 +11,14 @@ dependencies = [
 ]
 license = "MIT AND (Apache-2.0 OR BSD-2-Clause)"
 
+[project.scripts]
+pyrat = "pyrat.pyrat:main"
+
 [dependency-groups]
 dev = [
     "pre-commit>=4.3.0",
     "ruff>=0.14.0",
-] 
+]
 
 [tool.ruff]
 line-length = 150
