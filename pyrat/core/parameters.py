@@ -65,6 +65,7 @@ parser.add_argument("--position_cheese", type=str, metavar="cheese_file", help="
 parser.add_argument("--position_rat", type=str, metavar="rat_location_file", help="The rat location", default="")
 parser.add_argument("--position_python", type=str, metavar="python_location_file", help="The python location", default="")
 parser.add_argument("--step", action="store_true", help="Perform step by step mode")
+parser.add_argument("--show_path", action="store_true", help="Show explored cells by the players")
 parser.add_argument("--resultat", action="store_true", help="Print the result of the game at the end")
 parser.add_argument("--postprocessing", action="store_true", help="Perform postprocessing (useful for tournaments)")
 parser.add("-c", "--config", required=False, is_config_file=True, help="config file path (overrides other config files)")

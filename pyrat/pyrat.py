@@ -233,8 +233,10 @@ def send_info(text, q_info):
         print(text, file=sys.stderr)
 
 
-def affecter(chemin):
-    x, y = map(int, chemin.split(","))
+def clip_pos(pos, width, height):
+    x, y = [int(i) for i in pos.split(",")]
+    x = max(0, min(x, width - 1))
+    y = max(0, min(y, height - 1))
     return (x, y)
 
 
@@ -265,9 +267,9 @@ def run_game(screen, infoObject):
     player2_location = (-1, -1)
 
     if args.position_rat != "":
-        player1_location = affecter(args.position_rat)
+        player1_location = clip_pos(args.position_rat, width, height)
     if args.position_python != "":
-        player2_location = affecter(args.position_python)
+        player2_location = clip_pos(args.position_python, width, height)
 
         # Generate cheese
     logger.debug("Generating pieces of cheese")
@@ -419,6 +421,7 @@ def run_game(screen, infoObject):
                 q2_out,
                 is_human_rat,
                 is_human_python,
+                args.show_path,
                 q_info,
                 pieces_of_cheese,
                 player1_location,

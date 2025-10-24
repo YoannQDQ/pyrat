@@ -19,6 +19,7 @@
 import logging
 import random
 import sys
+from functools import lru_cache
 
 import pygame
 
@@ -26,104 +27,108 @@ from pyrat.core.parameters import args
 
 logger = logging.getLogger("display")
 
+# Yellow color for python
+PYTHON_COLOR = (255, 255, 0)
+# Brownish color for rat
+RAT_COLOR = (165, 42, 42)
 
-def image_of_maze(maze, tiles, image_tile, image_wall, image_corner, image_mud, offset_x, offset_y, scale, width, height, screen, window_height):
+
+@lru_cache(maxsize=128)
+def image(path, scalex, scaley):
+    return pygame.transform.smoothscale(pygame.image.load(path), (scalex, scaley))
+
+
+class Blitter:
+    def __init__(self, screen, offset_x, offset_y, scale, window_height):
+        self.screen = screen
+        self.offset_x = offset_x
+        self.offset_y = offset_y
+        self.scale = scale
+        self.window_height = window_height
+
+    def draw_image(self, path, i, j):
+        self.draw_tile(image(path, self.scale, self.scale), i, j)
+
+    def draw_tile(self, surface, i, j):
+        self.screen.blit(surface, (self.offset_x + self.scale * i, self.window_height - self.offset_y - self.scale * (j + 1)))
+
+
+def image_of_maze(maze, blitter):
+    last_cell = list(maze.keys())[-1]
+    width = last_cell[0] + 1
+    height = last_cell[1] + 1
+    image_wall = image("resources/gameElements/wall.png", blitter.scale, blitter.scale)
+    image_corner = image("resources/gameElements/corner.png", blitter.scale, blitter.scale)
+    image_mud = image("resources/gameElements/mud.png", blitter.scale, blitter.scale)
+    image_tiles = [image(f"resources/gameElements/tile{i}.png", blitter.scale, blitter.scale) for i in range(1, 11)]
+
+    # Draw floor
     for i in range(width):
         for j in range(height):
-            screen.blit(image_tile[tiles[i][j]], (offset_x + scale * i, window_height - offset_y - scale * (j + 1)))
+            blitter.draw_tile(random.choice(image_tiles), i, j)
+    # Draw walls and mud
     for i in range(width):
         for j in range(height):
-            if not ((i - 1, j) in maze[(i, j)]):
-                screen.blit(image_wall, (offset_x + scale * i, window_height - offset_y - scale * (j + 1)))
+            if (i - 1, j) not in maze[(i, j)]:
+                blitter.draw_tile(image_wall, i, j)
             elif maze[(i, j)][(i - 1, j)] > 1:
-                screen.blit(image_mud, (offset_x + scale * i, window_height - offset_y - scale * (j + 1)))
-            if not ((i + 1, j) in maze[(i, j)]):
-                screen.blit(
-                    pygame.transform.rotate(image_wall, 180),
-                    (offset_x + scale * i, window_height - offset_y - scale * (j + 1)),
-                )
+                blitter.draw_tile(image_mud, i, j)
+            if (i + 1, j) not in maze[(i, j)]:
+                blitter.draw_tile(pygame.transform.rotate(image_wall, 180), i, j)
+
             elif maze[(i, j)][(i + 1, j)] > 1:
-                screen.blit(
-                    pygame.transform.rotate(image_mud, 180),
-                    (offset_x + scale * i, window_height - offset_y - scale * (j + 1)),
-                )
-            if not ((i, j + 1) in maze[(i, j)]):
-                screen.blit(
-                    pygame.transform.rotate(image_wall, 270),
-                    (offset_x + scale * i, window_height - offset_y - scale * (j + 1)),
-                )
+                blitter.draw_tile(pygame.transform.rotate(image_mud, 180), i, j)
+
+            if (i, j + 1) not in maze[(i, j)]:
+                blitter.draw_tile(pygame.transform.rotate(image_wall, 270), i, j)
+
             elif maze[(i, j)][(i, j + 1)] > 1:
-                screen.blit(
-                    pygame.transform.rotate(image_mud, 270),
-                    (offset_x + scale * i, window_height - offset_y - scale * (j + 1)),
-                )
-            if not ((i, j - 1) in maze[(i, j)]):
-                screen.blit(
-                    pygame.transform.rotate(image_wall, 90),
-                    (offset_x + scale * i, window_height - offset_y - scale * (j + 1)),
-                )
+                blitter.draw_tile(pygame.transform.rotate(image_mud, 270), i, j)
+            if (i, j - 1) not in maze[(i, j)]:
+                blitter.draw_tile(pygame.transform.rotate(image_wall, 90), i, j)
             elif maze[(i, j)][(i, j - 1)] > 1:
-                screen.blit(
-                    pygame.transform.rotate(image_mud, 90),
-                    (offset_x + scale * i, window_height - offset_y - scale * (j + 1)),
-                )
+                blitter.draw_tile(pygame.transform.rotate(image_mud, 90), i, j)
+
+    # Draw Borders
     for i in range(width):
-        screen.blit(pygame.transform.rotate(image_wall, 270), (offset_x + scale * i, window_height - offset_y))
-        screen.blit(
-            pygame.transform.rotate(image_wall, 90),
-            (offset_x + scale * i, window_height - offset_y - scale * (height + 1)),
-        )
+        blitter.draw_tile(pygame.transform.rotate(image_wall, 270), i, -1)
+        blitter.draw_tile(pygame.transform.rotate(image_wall, 90), i, height)
     for j in range(height):
-        screen.blit(image_wall, (offset_x + scale * width, window_height - offset_y - scale * (j + 1)))
-        screen.blit(pygame.transform.rotate(image_wall, 180), (offset_x - scale, window_height - offset_y - scale * (j + 1)))
+        blitter.draw_tile(image_wall, 0, j)
+        blitter.draw_tile(pygame.transform.rotate(image_wall, 180), width - 1, j)
+
+    # Draw corners
     for i in range(width + 1):
         for j in range(height + 1):
-            screen.blit(image_corner, (offset_x + scale * i, window_height - offset_y - scale * j))
-            screen.blit(
-                pygame.transform.rotate(image_corner, 90),
-                (offset_x + scale * i, window_height - offset_y - scale * (j + 1)),
-            )
-            screen.blit(
-                pygame.transform.rotate(image_corner, 180),
-                (offset_x + scale * (i - 1), window_height - offset_y - scale * (j + 1)),
-            )
-            screen.blit(
-                pygame.transform.rotate(image_corner, 270),
-                (offset_x + scale * (i - 1), window_height - offset_y - scale * j),
-            )
+            blitter.draw_tile(image_corner, i, j - 1)
+            blitter.draw_tile(pygame.transform.rotate(image_corner, 90), i, j)
+            blitter.draw_tile(pygame.transform.rotate(image_corner, 180), i - 1, j)
+            blitter.draw_tile(pygame.transform.rotate(image_corner, 270), i - 1, j - 1)
 
 
-def draw_pieces_of_cheese(pieces_of_cheese, image_cheese, offset_x, offset_y, scale, width, height, screen, window_height):
+def draw_pieces_of_cheese(pieces_of_cheese, blitter: Blitter):
     for i, j in pieces_of_cheese:
-        screen.blit(image_cheese, (offset_x + scale * i, window_height - offset_y - scale * (j + 1)))
+        blitter.draw_image("resources/gameElements/cheese.png", i, j)
 
 
-def draw_players(
-    player1_location,
-    player2_location,
-    image_python,
-    image_rat,
-    offset_x,
-    offset_y,
-    scale,
-    width,
-    height,
-    screen,
-    window_height,
-):
-    i, j = player1_location
-    screen.blit(image_python, (offset_x + scale * i, window_height - offset_y - scale * (j + 1)))
-    i, j = player2_location
-    screen.blit(image_rat, (offset_x + scale * i, window_height - offset_y - scale * (j + 1)))
+def draw_explored_cells(seen_locations, blitter: Blitter, color):
+    # Create semi-transparent solid color surface
+    seen_cell = pygame.Surface((blitter.scale, blitter.scale))
+    seen_cell.set_alpha(50)  # Set transparency level (0-255)
+    seen_cell.fill(color)  # Fill with color
+
+    for i, j in seen_locations:
+        blitter.draw_tile(seen_cell, i, j)
 
 
-def draw_players_animate(
-    player1_location, player2_location, image_python, image_rat, offset_x, offset_y, scale, width, height, screen, window_height
-):
-    i, j = player1_location
-    screen.blit(image_python, (offset_x + scale * i, window_height - offset_y - scale * (j + 1)))
-    i, j = player2_location
-    screen.blit(image_rat, (offset_x + scale * i, window_height - offset_y - scale * (j + 1)))
+def draw_players(player1_location, player2_location, blitter: Blitter, rotation1, rotation2):
+    rat = image("resources/gameElements/movingRat.png", blitter.scale, blitter.scale)
+    rat = pygame.transform.rotate(rat, rotation1)
+    blitter.draw_tile(rat, *player1_location)
+
+    python = image("resources/gameElements/movingPython.png", blitter.scale, blitter.scale)
+    python = pygame.transform.rotate(python, rotation2)
+    blitter.draw_tile(python, *player2_location)
 
 
 font_sizes = [50, 25, 50, 25, 50, 50, 50]
@@ -143,10 +148,8 @@ def draw_text(text, color, max_size, index_size, x, y, screen):
 def draw_scores(
     p1name,
     score1,
-    image1,
     p2name,
     score2,
-    image2,
     window_width,
     window_height,
     screen,
@@ -247,75 +250,31 @@ def play(q_out, move):
     q_out.put(move)
 
 
-def init_coords_and_images(width, height, player1_is_alive, player2_is_alive, window_width, window_height):
+def load_image(path, scale_x, scale_y):
+    return pygame.transform.smoothscale(pygame.image.load(path), (scale_x, scale_y))
+
+
+def init_coords_and_images(width, height, window_width, window_height):
     scale = int(min((window_height - 50) / height, window_width * 2 / 3 / width))
     offset_x = window_width // 2 - int(width / 2 * scale)
     offset_y = max(25, window_height // 2 - int(scale * height / 2))
     scale_portrait_w = int(window_width / 6)
     scale_portrait_h = int(window_width / 6 * 800 / 541)
 
-    image_cheese = pygame.transform.smoothscale(pygame.image.load("resources/gameElements/cheese.png"), (scale, scale))
-    image_corner = pygame.transform.smoothscale(pygame.image.load("resources/gameElements/corner.png"), (scale, scale))
-    image_moving_python = pygame.transform.smoothscale(pygame.image.load("resources/gameElements/movingPython.png"), (scale, scale))
-    image_moving_rat = pygame.transform.smoothscale(pygame.image.load("resources/gameElements/movingRat.png"), (scale, scale))
-    image_python = pygame.transform.smoothscale(pygame.image.load("resources/gameElements/python.png"), (scale, scale))
-    image_rat = pygame.transform.smoothscale(pygame.image.load("resources/gameElements/rat.png"), (scale, scale))
-    image_wall = pygame.transform.smoothscale(pygame.image.load("resources/gameElements/wall.png"), (scale, scale))
-    image_mud = pygame.transform.smoothscale(pygame.image.load("resources/gameElements/mud.png"), (scale, scale))
-    image_portrait_python = pygame.transform.smoothscale(
-        pygame.image.load("resources/illustrations/python_left.png"), (scale_portrait_w, scale_portrait_h)
-    )
-    image_portrait_rat = pygame.transform.smoothscale(pygame.image.load("resources/illustrations/rat.png"), (scale_portrait_w, scale_portrait_h))
-    image_tile = []
-    for i in range(10):
-        image_tile.append(pygame.transform.smoothscale(pygame.image.load("resources/gameElements/tile" + str(i + 1) + ".png"), (scale, scale)))
-    tiles = []
-    for i in range(width):
-        tiles.append([])
-        for j in range(height):
-            tiles[i].append(random.randrange(10))
+    def load_img(path):
+        return load_image(path, scale, scale)
 
-    if not (player1_is_alive):
-        image_rat = image_rat.convert()
-        image_rat.set_alpha(0)
-        image_moving_rat = image_moving_rat.convert()
-        image_moving_rat.set_alpha(0)
-    if not (player2_is_alive):
-        image_python = image_python.convert()
-        image_python.set_alpha(0)
-        image_moving_python = image_moving_python.convert()
-        image_moving_python.set_alpha(0)
-    return (
-        scale,
-        offset_x,
-        offset_y,
-        image_cheese,
-        image_corner,
-        image_moving_python,
-        image_moving_rat,
-        image_python,
-        image_rat,
-        image_wall,
-        image_mud,
-        image_portrait_python,
-        image_portrait_rat,
-        tiles,
-        image_tile,
-    )
+    image_portrait_python = load_image("resources/illustrations/python_left.png", scale_portrait_w, scale_portrait_h)
+    image_portrait_rat = load_image("resources/illustrations/rat.png", scale_portrait_w, scale_portrait_h)
+
+    return (scale, offset_x, offset_y, image_portrait_python, image_portrait_rat)
 
 
 def build_background(
     screen,
     maze,
-    tiles,
-    image_tile,
-    image_wall,
-    image_corner,
-    image_mud,
     offset_x,
     offset_y,
-    width,
-    height,
     window_width,
     window_height,
     image_portrait_rat,
@@ -326,21 +285,8 @@ def build_background(
 ):
     screen.fill((0, 0, 0))
     maze_image = screen.copy()
-    image_of_maze(
-        maze,
-        tiles,
-        image_tile,
-        image_wall,
-        image_corner,
-        image_mud,
-        offset_x,
-        offset_y,
-        scale,
-        width,
-        height,
-        maze_image,
-        window_height,
-    )
+    blitter = Blitter(maze_image, offset_x, offset_y, scale, window_height)
+    image_of_maze(maze, blitter)
 
     if player1_is_alive:
         maze_image.blit(image_portrait_rat, (int(window_width / 12 - image_portrait_python.get_rect().width / 2), 15))
@@ -362,6 +308,7 @@ def run(
     q2_out,
     is_human_rat,
     is_human_python,
+    show_path,
     q_info,
     pieces_of_cheese,
     player1_location,
@@ -374,23 +321,7 @@ def run(
     logger.log(2, "Starting rendering")
     window_width, window_height = pygame.display.get_surface().get_size()
     turn_time = args.turn_time
-    (
-        scale,
-        offset_x,
-        offset_y,
-        image_cheese,
-        image_corner,
-        image_moving_python,
-        image_moving_rat,
-        image_python,
-        image_rat,
-        image_wall,
-        image_mud,
-        image_portrait_python,
-        image_portrait_rat,
-        tiles,
-        image_tile,
-    ) = init_coords_and_images(width, height, player1_is_alive, player2_is_alive, window_width, window_height)
+    (scale, offset_x, offset_y, image_portrait_python, image_portrait_rat) = init_coords_and_images(width, height, window_width, window_height)
 
     logger.log(2, "Defining constants")
     clock = pygame.time.Clock()
@@ -400,8 +331,6 @@ def run(
     time_to_go2 = pygame.time.get_ticks()
     score1 = 0
     score2 = 0
-    image1 = image_rat
-    image2 = image_python
     moves1 = 0
     moves2 = 0
     miss1 = 0
@@ -425,15 +354,8 @@ def run(
     maze_image = build_background(
         screen,
         maze,
-        tiles,
-        image_tile,
-        image_wall,
-        image_corner,
-        image_mud,
         offset_x,
         offset_y,
-        width,
-        height,
         window_width,
         window_height,
         image_portrait_rat,
@@ -446,6 +368,9 @@ def run(
     starting_time = pygame.time.get_ticks()
 
     text_info = ""
+
+    player1_locations = set()
+    player2_locations = set()
 
     logger.log(2, "Starting main loop")
     while q_quit.empty():
@@ -463,35 +388,14 @@ def run(
                     if event.type == pygame.VIDEORESIZE:
                         window_width, window_height = event.w, event.h
                     screen = pygame.display.set_mode((window_width, window_height), pygame.RESIZABLE)
-                (
-                    scale,
-                    offset_x,
-                    offset_y,
-                    image_cheese,
-                    image_corner,
-                    image_moving_python,
-                    image_moving_rat,
-                    image_python,
-                    image_rat,
-                    image_wall,
-                    image_mud,
-                    image_portrait_python,
-                    image_portrait_rat,
-                    tiles,
-                    image_tile,
-                ) = init_coords_and_images(width, height, player1_is_alive, player2_is_alive, window_width, window_height)
+                (scale, offset_x, offset_y, image_portrait_python, image_portrait_rat) = init_coords_and_images(
+                    width, height, window_width, window_height
+                )
                 maze_image = build_background(
                     screen,
                     maze,
-                    tiles,
-                    image_tile,
-                    image_wall,
-                    image_corner,
-                    image_mud,
                     offset_x,
                     offset_y,
-                    width,
-                    height,
                     window_width,
                     window_height,
                     image_portrait_rat,
@@ -560,6 +464,10 @@ def run(
                 stuck1,
                 stuck2,
             ) = q.get()
+
+            old_player1_location = new_player1_location
+            old_player2_location = new_player2_location
+
             if not (args.desactivate_animations):
                 if nnew_player1_location != new_player1_location:
                     time_to_go1 = pygame.time.get_ticks() + turn_time * maze[new_player1_location][nnew_player1_location]
@@ -577,7 +485,22 @@ def run(
         screen.fill((0, 0, 0))
         screen.blit(maze_image, (0, 0))
 
-        draw_pieces_of_cheese(pieces_of_cheese, image_cheese, offset_x, offset_y, scale, width, height, screen, window_height)
+        blitter = Blitter(screen, offset_x, offset_y, scale, window_height)
+
+        # Draw explored cells
+        if show_path:
+            if player1_is_alive:
+                if new_player1_location not in player1_locations:
+                    player1_locations.add(new_player1_location)
+                draw_explored_cells(player1_locations, blitter, color=RAT_COLOR)
+
+            if player2_is_alive:
+                if new_player2_location not in player2_locations:
+                    player2_locations.add(new_player2_location)
+
+                draw_explored_cells(player2_locations, blitter, color=PYTHON_COLOR)
+
+        draw_pieces_of_cheese(pieces_of_cheese, blitter)
         if not (args.desactivate_animations):
             if time_to_go1 <= pygame.time.get_ticks() or player1_location == new_player1_location:
                 player1_location = new_player1_location
@@ -587,14 +510,6 @@ def run(
                 i, j = player1_location
                 ii, jj = new_player1_location
                 player1_draw_location = i * prop + ii * (1 - prop), j * prop + jj * (1 - prop)
-                if ii > i:
-                    image1 = pygame.transform.rotate(image_moving_rat, 270)
-                elif ii < i:
-                    image1 = pygame.transform.rotate(image_moving_rat, 90)
-                elif j < jj:
-                    image1 = pygame.transform.rotate(image_moving_rat, 0)
-                else:
-                    image1 = pygame.transform.rotate(image_moving_rat, 180)
             if time_to_go2 <= pygame.time.get_ticks() or player2_location == new_player2_location:
                 player2_location = new_player2_location
                 player2_draw_location = player2_location
@@ -603,48 +518,31 @@ def run(
                 i, j = player2_location
                 ii, jj = new_player2_location
                 player2_draw_location = i * prop + ii * (1 - prop), j * prop + jj * (1 - prop)
-                if ii > i:
-                    image2 = pygame.transform.rotate(image_moving_python, 270)
-                elif ii < i:
-                    image2 = pygame.transform.rotate(image_moving_python, 90)
-                elif j < jj:
-                    image2 = pygame.transform.rotate(image_moving_python, 0)
-                else:
-                    image2 = pygame.transform.rotate(image_moving_python, 180)
-            draw_players_animate(
-                player1_draw_location,
-                player2_draw_location,
-                image1,
-                image2,
-                offset_x,
-                offset_y,
-                scale,
-                width,
-                height,
-                screen,
-                window_height,
-            )
         else:
-            draw_players(
-                player1_location,
-                player2_location,
-                image_rat,
-                image_python,
-                offset_x,
-                offset_y,
-                scale,
-                width,
-                height,
-                screen,
-                window_height,
-            )
+            player1_draw_location = player1_location
+            player2_draw_location = player2_location
+
+        def rotation(old_loc, new_loc):
+            if old_loc[1] < new_loc[1]:
+                return 0
+            if old_loc[1] > new_loc[1]:
+                return 180
+            if old_loc[0] < new_loc[0]:
+                return 270
+            if old_loc[0] > new_loc[0]:
+                return 90
+            return 0
+
+        rotation1 = rotation(old_player1_location, new_player1_location)
+        rotation2 = rotation(old_player2_location, new_player2_location)
+
+        draw_players(player1_draw_location, player2_draw_location, blitter, rotation1, rotation2)
+
         draw_scores(
             p1name,
             score1,
-            image_portrait_rat,
             p2name,
             score2,
-            image_portrait_python,
             window_width,
             window_height,
             screen,
