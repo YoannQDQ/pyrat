@@ -128,7 +128,7 @@ def player(pet, filename, q_in, q_out, q_quit, width, height, preparation_time, 
                 player1_location, player2_location, score1, score2, pieces_of_cheese = q_in.get()
                 while not (q_in.empty()):
                     player1_location, player2_location, score1, score2, pieces_of_cheese = q_in.get()
-            except:
+            except TypeError:
                 break
             if player1_location == None:
                 break
@@ -159,17 +159,15 @@ def player(pet, filename, q_in, q_out, q_quit, width, height, preparation_time, 
             except:
                 ()
     except:
-        ()
+        pass
+
     player1_location, player2_location, score1, score2, pieces_of_cheese = q_in.get()
     if args.postprocessing:
         try:
             module.postprocessing(maze, width, height, player1_location, player2_location, score1, score2, pieces_of_cheese, turn_time)
         except Exception as e:
             traceback.print_exc()
-            print(
-                e,
-                file=sys.stderr,
-            )
+            print(e, file=sys.stderr)
     if turn_delay_count:
         q_out.put((prep_time, turn_delay / turn_delay_count))
     else:
@@ -405,6 +403,8 @@ def run_game(screen, infoObject):
     q_render_in = Queue()
     q_info = Queue()
     if not (args.nodrawing):
+        player1_is_alive = args.rat != ""
+        player2_is_alive = args.python != ""
         q_render_quit = Queue()
         draw = Thread(
             target=run,
@@ -426,8 +426,8 @@ def run_game(screen, infoObject):
                 pieces_of_cheese,
                 player1_location,
                 player2_location,
-                args.rat != "",
-                args.python != "",
+                player1_is_alive,
+                player2_is_alive,
                 screen,
                 infoObject,
             ),
@@ -500,25 +500,25 @@ def run_game(screen, infoObject):
         if args.rat != "" and args.python != "":
             if score1 == score2 and score1 >= args.pieces / 2:
                 send_info(
-                    "The Rat(" + p1name + ") and the Python (" + p2name + ") got the same number of pieces of cheese!",
+                    f"The Rat ({p1name}) and the Python ({p2name}) got the same number of pieces of cheese!",
                     q_info,
                 )
                 break
             if score1 > args.pieces / 2:
-                send_info("The Rat (" + p1name + ") won the match!", q_info)
+                send_info(f"The Rat ({p1name}) won the match!", q_info)
                 win1 = win1 + 1
                 break
             if score2 > args.pieces / 2:
-                send_info("The Python (" + p2name + ") won the match!", q_info)
+                send_info(f"The Python ({p2name}) won the match!", q_info)
                 win2 = win2 + 1
                 break
         else:
             if score1 >= args.pieces:
-                send_info("The Rat (" + p1name + ") got all pieces of cheese!", q_info)
+                send_info(f"The Rat ({p1name}) got all pieces of cheese!", q_info)
                 win1 = win1 + 1
                 break
             if score2 >= args.pieces:
-                send_info("The Python (" + p2name + ") got all pieces of cheese!", q_info)
+                send_info(f"The Python ({p2name}) got all pieces of cheese!", q_info)
                 win2 = win2 + 1
                 break
         # Or if there is no more cheese
@@ -583,26 +583,32 @@ def run_game(screen, infoObject):
         #   soit je tappe une direction parmi N(ord) S(ud) E(st) O(uest)
         if args.step:
             if stuck1 <= 0 and not (sortir):
-                send_info("Press 'c' or ←↑↓→", q_info)
+                send_info("Press 'c' to run the bots, ←↑↓→ or 'q' to quit", q_info)
             while stuck1 <= 0 and stuck2 <= 0 and not (sortir):
                 for event in pygame.event.get():
-                    if event.type == pygame.KEYDOWN and (event.key == pygame.K_n or event.key == pygame.K_UP):
-                        sortir = True
-                        decision1 = MOVE_N
-                    if event.type == pygame.KEYDOWN and (event.key == pygame.K_o or event.key == pygame.K_LEFT):
-                        sortir = True
-                        decision1 = MOVE_O
-                    if event.type == pygame.KEYDOWN and (event.key == pygame.K_e or event.key == pygame.K_RIGHT):
-                        sortir = True
-                        decision1 = MOVE_E
-                    if event.type == pygame.KEYDOWN and (event.key == pygame.K_s or event.key == pygame.K_DOWN):
-                        sortir = True
-                        decision1 = MOVE_S
-                    if event.type == pygame.KEYDOWN and event.key == pygame.K_c:
-                        sortir = True
-                    if event.type == pygame.QUIT or (event.type == pygame.KEYDOWN and event.key == pygame.K_q):
+                    if event.type == pygame.QUIT:
                         quitter = event
                         sortir = True
+                    elif event.type == pygame.KEYDOWN:
+                        unicode = event.dict["unicode"]
+                        if unicode.lower() == "q":
+                            quitter = event
+                            sortir = True
+                        elif unicode.lower() == "n" or event.key == pygame.K_UP:
+                            sortir = True
+                            decision1 = MOVE_N
+                        elif unicode.lower() == "o" or event.key == pygame.K_LEFT:
+                            sortir = True
+                            decision1 = MOVE_O
+                        elif unicode.lower() == "e" or event.key == pygame.K_RIGHT:
+                            sortir = True
+                            decision1 = MOVE_E
+                        elif unicode.lower() == "s" or event.key == pygame.K_DOWN:
+                            sortir = True
+                            decision1 = MOVE_S
+                        elif unicode.lower() == "c":
+                            sortir = True
+
             if quitter:
                 quit_event = pygame.event.Event(pygame.QUIT)
                 pygame.event.post(quit_event)
