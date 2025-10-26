@@ -17,6 +17,7 @@
 #    along with PyRat.  If not, see <http://www.gnu.org/licenses/>.
 
 import logging
+import math
 import random
 import sys
 from functools import lru_cache
@@ -59,13 +60,12 @@ class MazePainter:
     def draw_walls(self):
         self.surface.blit(self.walls, (0, 0))
 
-    def draw_explored_cells(self, seen_locations, color):
+    def draw_explored_cell(self, new_location, color):
         # Create semi-transparent solid color surface
         seen_cell = pygame.Surface((self.cell_size, self.cell_size))
         seen_cell.set_alpha(50)  # Set transparency level (0-255)
         seen_cell.fill(color)  # Fill with color
-        for i, j in seen_locations:
-            self.draw_tile(seen_cell, i, j)
+        self.draw_tile(seen_cell, *new_location, target=self.floor)
 
     def draw_pieces_of_cheese(self, pieces_of_cheese):
         for i, j in pieces_of_cheese:
@@ -474,15 +474,14 @@ def run(
         # Draw explored cells
         if show_path:
             if player1_is_alive:
-                if new_player1_location not in player1_locations:
-                    player1_locations.add(new_player1_location)
-                maze_painter.draw_explored_cells(player1_locations, color=RAT_COLOR)
+                if player1_location not in player1_locations:
+                    player1_locations.add(player1_location)
+                    maze_painter.draw_explored_cell(player1_location, color=RAT_COLOR)
 
             if player2_is_alive:
-                if new_player2_location not in player2_locations:
-                    player2_locations.add(new_player2_location)
-
-                maze_painter.draw_explored_cells(player2_locations, color=PYTHON_COLOR)
+                if player2_location not in player2_locations:
+                    player2_locations.add(player2_location)
+                    maze_painter.draw_explored_cell(player2_location, color=PYTHON_COLOR)
         maze_painter.draw_walls()
         maze_painter.draw_pieces_of_cheese(pieces_of_cheese)
 
@@ -532,7 +531,7 @@ def run(
         maze_width = maze_painter.surface.get_width()
 
         scale = min(available_height / maze_height, available_width / maze_width)
-        scale = round(scale + 0.2)
+        scale = math.floor(scale + 0.2)
         scaled_maze = pygame.transform.scale(maze_painter.surface, (int(maze_width * scale), int(maze_height * scale)))
 
         screen.blit(scaled_maze, ((window_width - scaled_maze.get_width()) / 2, 50 + (available_height - scaled_maze.get_height()) / 2))
