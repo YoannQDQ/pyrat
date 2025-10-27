@@ -1,6 +1,8 @@
 PyRat ![icon](resources/various/pyrat.ico)
 ===================
 
+![icon](resources/illustrations/rat.png)
+
 Remi a faim. Il y a du fromage dans le labyrinthe. Aide-le à le trouver !
 
 Quick Guide

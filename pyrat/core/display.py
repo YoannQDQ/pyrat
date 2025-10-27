@@ -20,6 +20,7 @@ import logging
 import math
 import random
 import sys
+from dataclasses import dataclass
 from functools import lru_cache
 
 import pygame
@@ -31,8 +32,8 @@ logger = logging.getLogger("display")
 
 # Yellow color for python
 PYTHON_COLOR = (255, 255, 0)
-# Brownish color for rat
-RAT_COLOR = (165, 42, 42)
+# RED color for rat
+RAT_COLOR = (255, 0, 0)
 
 
 @lru_cache(maxsize=128)
@@ -172,114 +173,52 @@ class MazePainter:
                     draw_bottom_left_corner(i, j)
 
 
-def draw_text(text, color, max_width, font_size, x, y, screen):
+def draw_text(text, color, max_width, font_size, x, y, screen, mode="center"):
     font = pygame.font.Font("resources/fonts/BoldPixels.ttf", font_size)
     label = font.render(text, 1, color)
     while label.get_rect().width > max_width:
         font_size -= 1
         font = pygame.font.Font("resources/fonts/BoldPixels.ttf", font_size)
         label = font.render(text, 1, color)
-    pygame.draw.rect(screen, (0, 0, 0), (x - label.get_rect().width // 2, y, label.get_rect().width, label.get_rect().height))
-    screen.blit(label, (x - label.get_rect().width // 2, y))
+
+    if mode == "center":
+        x = x - label.get_rect().width // 2
+    pygame.draw.rect(screen, (0, 0, 0), (x, y, label.get_rect().width, label.get_rect().height))
+    screen.blit(label, (x, y))
 
 
-def draw_scores(
-    p1name,
-    score1,
-    p2name,
-    score2,
-    window_width,
-    window_height,
-    screen,
-    player1_is_alive,
-    player2_is_alive,
-    moves1,
-    miss1,
-    moves2,
-    miss2,
-    stuck1,
-    stuck2,
-):
-    if player1_is_alive:
-        draw_text(
-            "Score: " + str(score1),
-            (255, 255, 255),
-            window_width / 6 - 20,
-            50,
-            int(window_width / 12),
-            window_width / 3 + 50,
-            screen,
-        )
-        draw_text(p1name, (255, 255, 255), window_width / 6 - 20, 30, int(window_width / 12), window_width / 3, screen)
-        draw_text(
-            "Moves: " + str(moves1),
-            (0, 255, 0),
-            window_width / 6 - 20,
-            25,
-            int(window_width / 12),
-            window_width / 3 + 150,
-            screen,
-        )
-        draw_text(
-            "Miss: " + str(miss1),
-            (255, 0, 0),
-            window_width / 6 - 20,
-            25,
-            int(window_width / 12),
-            window_width / 3 + 180,
-            screen,
-        )
-        draw_text(
-            "Mud: " + str(stuck1),
-            (137, 81, 41),
-            window_width / 6 - 20,
-            25,
-            int(window_width / 12),
-            window_width / 3 + 210,
-            screen,
-        )
-    if player2_is_alive:
-        draw_text(
-            "Score: " + str(score2),
-            (255, 255, 255),
-            window_width / 6 - 20,
-            50,
-            int(11 * window_width / 12),
-            window_width / 3 + 50,
-            screen,
-        )
-        draw_text(p2name, (255, 255, 255), window_width / 6 - 20, 30, int(11 * window_width / 12), window_width / 3, screen)
-        draw_text(
-            "Moves: " + str(moves2),
-            (0, 255, 0),
-            window_width / 6 - 20,
-            25,
-            int(11 * window_width / 12),
-            window_width / 3 + 150,
-            screen,
-        )
-        draw_text(
-            "Miss: " + str(miss2),
-            (255, 0, 0),
-            window_width / 6 - 20,
-            25,
-            int(11 * window_width / 12),
-            window_width / 3 + 180,
-            screen,
-        )
-        draw_text(
-            "Mud: " + str(stuck2),
-            (137, 81, 41),
-            window_width / 6 - 20,
-            25,
-            int(11 * window_width / 12),
-            window_width / 3 + 210,
-            screen,
-        )
+def draw_centered_text(text, color, font_size, y, surface):
+    draw_text(text, color, surface.get_width(), font_size, surface.get_width() // 2, y, surface)
 
 
-def display_exit():
-    pygame.quit()
+@dataclass
+class PlayerScore:
+    name: str
+    score: int
+    moves: int
+    misses: int
+    stuck: int
+    alive: bool
+
+
+def draw_scores(players: list[PlayerScore], screen: pygame.Surface):
+    window_width, _window_height = pygame.display.get_surface().get_size()
+
+    y_offset = 60 + 256  # Height of the player picture + top margin
+    x_margin = 10
+
+    score_surface = pygame.Surface((window_width / 6 - 2 * x_margin, 175))
+    for i, player in enumerate(players):
+        if player.alive:
+            dest = score_surface.copy()
+            draw_centered_text(player.name.title(), (255, 255, 255), 40, y=0, surface=dest)
+            draw_centered_text(f"Score: {player.score}", (255, 255, 255), 50, y=50, surface=dest)
+            draw_centered_text(f"Moves: {player.moves}", (0, 255, 0), 25, y=100, surface=dest)
+            draw_centered_text(f"Miss: {player.misses}", (255, 0, 0), 25, y=125, surface=dest)
+            draw_centered_text(f"Mud: {player.stuck}", (137, 81, 41), 25, y=150, surface=dest)
+
+            x = x_margin if i % 2 == 0 else window_width - window_width / 6 + x_margin
+            screen.blit(dest, (x, y_offset))
 
 
 def play(q_out, move):
@@ -306,8 +245,6 @@ def build_static_hub(screen: pygame.Surface, player1_is_alive, player2_is_alive)
 
 def run(
     maze,
-    width,
-    height,
     q,
     q_render_in,
     q_quit,
@@ -325,7 +262,7 @@ def run(
     player1_is_alive,
     player2_is_alive,
     screen: pygame.Surface,
-    infoObject,
+    info_object,
 ):
     logger.log(2, "Starting rendering")
     window_width, window_height = pygame.display.get_surface().get_size()
@@ -374,14 +311,15 @@ def run(
     while q_quit.empty():
         logger.log(2, "Checking events")
         for event in pygame.event.get():
-            if event.type == pygame.QUIT or (event.type == pygame.KEYDOWN and (event.key == pygame.K_q or event.key == pygame.K_ESCAPE)):
+            if event.type == pygame.KEYDOWN:
+                unicode = event.dict["unicode"].lower()
+            if event.type == pygame.QUIT or (event.type == pygame.KEYDOWN and (unicode == "q" or event.key == pygame.K_ESCAPE)):
                 q_quit.put("sortir")
-                # pygame.quit()
                 break
-            if event.type == pygame.VIDEORESIZE or (event.type == pygame.KEYDOWN and event.key == pygame.K_f):
+            if event.type == pygame.VIDEORESIZE or (event.type == pygame.KEYDOWN and unicode == "f"):
                 if event.type == pygame.KEYDOWN and not (screen.get_flags() & 0x80000000):
-                    screen = pygame.display.set_mode((infoObject.current_w, infoObject.current_h), pygame.FULLSCREEN)
-                    window_width, window_height = infoObject.current_w, infoObject.current_h
+                    screen = pygame.display.set_mode((info_object.current_w, info_object.current_h), pygame.FULLSCREEN)
+                    window_width, window_height = info_object.current_w, info_object.current_h
                 else:
                     if event.type == pygame.VIDEORESIZE:
                         window_width, window_height = event.w, event.h
@@ -406,8 +344,7 @@ def run(
                     play(q2_out, "U")
                 if event.key == pygame.K_KP5:
                     play(q2_out, "D")
-        # if not(q_quit.empty()):
-        #    break
+
         logger.log(2, "Processing joysticks")
         try:
             x, y = j0.get_axis(3), j0.get_axis(4)
@@ -473,15 +410,13 @@ def run(
 
         # Draw explored cells
         if show_path:
-            if player1_is_alive:
-                if player1_location not in player1_locations:
-                    player1_locations.add(player1_location)
-                    maze_painter.draw_explored_cell(player1_location, color=RAT_COLOR)
+            if player1_is_alive and player1_location not in player1_locations:
+                player1_locations.add(player1_location)
+                maze_painter.draw_explored_cell(player1_location, color=RAT_COLOR)
 
-            if player2_is_alive:
-                if player2_location not in player2_locations:
-                    player2_locations.add(player2_location)
-                    maze_painter.draw_explored_cell(player2_location, color=PYTHON_COLOR)
+            if player2_is_alive and player2_location not in player2_locations:
+                player2_locations.add(player2_location)
+                maze_painter.draw_explored_cell(player2_location, color=PYTHON_COLOR)
         maze_painter.draw_walls()
         maze_painter.draw_pieces_of_cheese(pieces_of_cheese)
 
@@ -522,7 +457,7 @@ def run(
             maze_painter.draw_player(player1_draw_location, rotation1, "rat")
         if player2_is_alive:
             rotation2 = rotation(old_player2_location, new_player2_location)
-            maze_painter.draw_player(player2_draw_location, rotation2, "python")
+            maze_painter.draw_player(player2_draw_location, rotation2, "sheep")
 
         available_width = window_width * 2 / 3
         available_height = window_height - 75
@@ -537,22 +472,13 @@ def run(
         screen.blit(scaled_maze, ((window_width - scaled_maze.get_width()) / 2, 50 + (available_height - scaled_maze.get_height()) / 2))
 
         draw_scores(
-            p1name,
-            score1,
-            p2name,
-            score2,
-            window_width,
-            window_height,
+            [
+                PlayerScore(p1name, score1, moves1, miss1, stuck1, player1_is_alive),
+                PlayerScore(p2name, score2, moves2, miss2, stuck2, player2_is_alive),
+            ],
             screen,
-            player1_is_alive,
-            player2_is_alive,
-            moves1,
-            miss1,
-            moves2,
-            miss2,
-            stuck1,
-            stuck2,
         )
+
         if not (q_info.empty()):
             text_info = q_info.get()
         if text_info != "":

@@ -410,8 +410,6 @@ def run_game(screen, infoObject):
             target=run,
             args=(
                 maze,
-                width,
-                height,
                 q_render,
                 q_render_in,
                 q_render_quit,
