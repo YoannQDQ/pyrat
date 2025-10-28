@@ -23,19 +23,20 @@ import configargparse as argparse
 
 ROOT_PATH = Path(__file__).parent.parent.parent
 
+DEFAULT_CONFIG_FILE = ROOT_PATH / "config.ini"
 # Parse arguments
-parser = argparse.ArgumentParser(default_config_files=[str(ROOT_PATH / "config.ini")])
+parser = argparse.ArgumentParser()
 parser.add_argument("--rat", type=str, metavar="rat_file", help="Program to control the rat", default="")
 parser.add_argument("--python", type=str, metavar="python_file", help="Program to control the python", default="")
 parser.add_argument("-x", "--width", type=int, metavar="x", help="Width of the maze", default=21)
 parser.add_argument("-y", "--height", type=int, metavar="y", help="Height of the maze", default=21)
-parser.add_argument("-d", "--density", type=float, metavar="d", help="Targetted density of walls", default=0.7)
+parser.add_argument("-d", "--density", type=float, metavar="d", help="Targetted density of walls", default=0.5)
 parser.add_argument("-p", "--pieces", type=int, metavar="p", help="Number of pieces of cheese", default=1)
 parser.add_argument("--nonsymmetric", action="store_true", help="Do not enforce symmetry of the maze")
-parser.add_argument("-md", "--mud_density", type=float, metavar="md", help="Mud density", default=0.2)
+parser.add_argument("-md", "--mud_density", type=float, metavar="md", help="Mud density", default=0)
 parser.add_argument("-mr", "--mud_range", type=int, metavar="mr", help="Mud range (mud is between 2 and mr)", default=10)
 parser.add_argument("--nonconnected", action="store_true", help="Does not enforce connectivity of the maze")
-parser.add_argument("--preparation_time", type=int, metavar="pt", help="Preparation time in milliseconds", default=2000)
+parser.add_argument("--preparation_time", type=int, metavar="pt", help="Preparation time in milliseconds", default=0)
 parser.add_argument("--turn_time", type=int, metavar="tt", help="Turn time in milliseconds", default=100)
 parser.add_argument("--window_width", type=int, metavar="ww", help="Window width (in pixels)", default=1366)
 parser.add_argument("--auto_exit", action="store_true", help="Automatically exit when game is finished (useful for scripts)")
@@ -65,10 +66,11 @@ parser.add_argument("--position_cheese", type=str, metavar="cheese_file", help="
 parser.add_argument("--position_rat", type=str, metavar="rat_location_file", help="The rat location", default="")
 parser.add_argument("--position_python", type=str, metavar="python_location_file", help="The python location", default="")
 parser.add_argument("--step", action="store_true", help="Perform step by step mode")
+parser.add_argument("--no-step", action="store_false", dest="step", help="Disable step by step mode")
 parser.add_argument("--show_path", action="store_true", help="Show explored cells by the players")
 parser.add_argument("--resultat", action="store_true", help="Print the result of the game at the end")
 parser.add_argument("--postprocessing", action="store_true", help="Perform postprocessing (useful for tournaments)")
-parser.add("-c", "--config", required=False, is_config_file=True, help="config file path (overrides other config files)")
+parser.add("-c", "--config", required=False, is_config_file=True, help="config file path (overrides other config files)", default=DEFAULT_CONFIG_FILE)
 args = parser.parse_args()
 args.window_height = int(10 * args.window_width / 16)
 
