@@ -75,7 +75,7 @@ class MazePainter:
     def draw_tile(self, surface, i, j, target=None):
         """Warning: i means column and j means row, and (0,0) is bottom-left corner"""
         target = target or self.surface
-        target.blit(surface, (self.cell_size * i + self.margins, self.cell_size * (self.columns - 1 - j) + self.margins))
+        target.blit(surface, (self.cell_size * i + self.margins, self.cell_size * (self.rows - 1 - j) + self.margins))
 
     def draw_image(self, path, i, j, target=None):
         tile = image(path, self.cell_size, self.cell_size)
