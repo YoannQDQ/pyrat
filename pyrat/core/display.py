@@ -21,7 +21,7 @@ import math
 import random
 import sys
 from dataclasses import dataclass
-from functools import lru_cache
+from functools import cache, lru_cache
 
 import pygame
 
@@ -172,14 +172,19 @@ class MazePainter:
                     draw_bottom_left_corner(i, j)
 
 
-def draw_text(text, color, max_width, font_size, x, y, screen, mode="center"):
+@cache
+def compute_label(text, color, font_size, max_width):
     font = pygame.font.Font("resources/fonts/BoldPixels.ttf", font_size)
     label = font.render(text, 1, color)
     while label.get_rect().width > max_width:
         font_size -= 1
         font = pygame.font.Font("resources/fonts/BoldPixels.ttf", font_size)
         label = font.render(text, 1, color)
+    return label
 
+
+def draw_text(text, color, max_width, font_size, x, y, screen, mode="center"):
+    label = compute_label(text, color, font_size, max_width)
     if mode == "center":
         x = x - label.get_rect().width // 2
     pygame.draw.rect(screen, (0, 0, 0), (x, y, label.get_rect().width, label.get_rect().height))
@@ -266,6 +271,7 @@ def run(
     logger.log(2, "Starting rendering")
     window_width, window_height = pygame.display.get_surface().get_size()
     turn_time = args.turn_time
+    old_turn_number = -1
 
     logger.log(2, "Defining constants")
     clock = pygame.time.Clock()
@@ -403,8 +409,40 @@ def run(
 
         logger.log(2, "Starting draw")
 
-        # Blit the static images (maze floor)
-        screen.blit(hub_image, (0, 0))
+        ticking = pygame.time.get_ticks()
+        turn_number = ticking // turn_time
+
+        # Refresh hub and text only every turn
+        if turn_number > old_turn_number:
+            old_turn_number = turn_number
+            # Blit the static images (maze floor)
+            screen.blit(hub_image, (0, 0))
+
+            draw_scores(
+                [
+                    PlayerScore(p1name, score1, moves1, miss1, stuck1, player1_is_alive),
+                    PlayerScore(p2name, score2, moves2, miss2, stuck2, player2_is_alive),
+                ],
+                screen,
+            )
+
+        if not (q_info.empty()):
+            text_info = q_info.get()
+        if text_info != "":
+            draw_text(text_info, (255, 255, 255), window_width, 40, window_width // 2, 5, screen)
+        if pygame.time.get_ticks() - starting_time < args.preparation_time:
+            remaining = args.preparation_time - pygame.time.get_ticks() + starting_time
+            if remaining > 0:
+                draw_text(
+                    "Starting in " + str(remaining // 1000) + "." + (str(remaining % 1000)).zfill(3),
+                    (255, 255, 255),
+                    window_width,
+                    50,
+                    window_width // 2,
+                    25,
+                    screen,
+                )
+
         maze_painter.draw_floor()
 
         # Draw explored cells
@@ -469,31 +507,6 @@ def run(
         scaled_maze = pygame.transform.scale(maze_painter.surface, (int(maze_width * scale), int(maze_height * scale)))
 
         screen.blit(scaled_maze, ((window_width - scaled_maze.get_width()) / 2, 50 + (available_height - scaled_maze.get_height()) / 2))
-
-        draw_scores(
-            [
-                PlayerScore(p1name, score1, moves1, miss1, stuck1, player1_is_alive),
-                PlayerScore(p2name, score2, moves2, miss2, stuck2, player2_is_alive),
-            ],
-            screen,
-        )
-
-        if not (q_info.empty()):
-            text_info = q_info.get()
-        if text_info != "":
-            draw_text(text_info, (255, 255, 255), window_width, 25, window_width // 2, 12, screen)
-        if pygame.time.get_ticks() - starting_time < args.preparation_time:
-            remaining = args.preparation_time - pygame.time.get_ticks() + starting_time
-            if remaining > 0:
-                draw_text(
-                    "Starting in " + str(remaining // 1000) + "." + (str(remaining % 1000)).zfill(3),
-                    (255, 255, 255),
-                    window_width,
-                    50,
-                    window_width // 2,
-                    25,
-                    screen,
-                )
 
         logger.log(2, "Drawing on screen")
         pygame.display.flip()

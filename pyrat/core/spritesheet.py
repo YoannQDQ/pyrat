@@ -9,10 +9,12 @@ def sheet(filename):
 
 
 @cache
-def image_at(filename, rectangle, colorkey=None):
+def image_at(filename, rectangle, colorkey=None, size=None):
     rect = pygame.Rect(rectangle)
     source = sheet(filename)
     image = pygame.Surface(rect.size).convert()
     image.blit(source, (0, 0), rect)
     image.set_colorkey(colorkey)
+    if size:
+        image = pygame.transform.scale(image, (size, size))
     return image
