@@ -277,6 +277,8 @@ def run(
     clock = pygame.time.Clock()
     new_player1_location = player1_location
     new_player2_location = player2_location
+    old_player1_location = new_player1_location
+    old_player2_location = new_player2_location
     time_to_go1 = pygame.time.get_ticks()
     time_to_go2 = pygame.time.get_ticks()
     score1 = 0
