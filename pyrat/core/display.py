@@ -26,7 +26,7 @@ from functools import lru_cache
 import pygame
 
 from pyrat.core.parameters import args
-from pyrat.core.spritesheet import SpriteSheet
+from pyrat.core.spritesheet import image_at
 
 logger = logging.getLogger("display")
 
@@ -84,7 +84,6 @@ class MazePainter:
     def draw_player(self, player_location, rotation, player_type):
         if player_type == "rat":
             self.animation_index = (self.animation_index + 1) % (3 * 8)
-            sheet = SpriteSheet("resources/gameElements/rat_sprite_sheet.png")
             if rotation == 0:
                 y = 3 * 32
             if rotation == 90:
@@ -93,7 +92,7 @@ class MazePainter:
                 y = 0
             if rotation == 270:
                 y = 2 * 32
-            sprite = sheet.image_at((self.animation_index // 8 * 32, y, 32, 32), colorkey=(0, 255, 0))
+            sprite = image_at("resources/gameElements/rat_sprite_sheet.png", (self.animation_index // 8 * 32, y, 32, 32), colorkey=(0, 255, 0))
 
         else:
             sprite = image("resources/gameElements/moving_snake.png", self.cell_size, self.cell_size)
