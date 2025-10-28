@@ -330,8 +330,7 @@ def run(
                 else:
                     if event.type == pygame.VIDEORESIZE:
                         window_width, window_height = event.w, event.h
-                    screen = pygame.display.set_mode((window_width, window_height), pygame.RESIZABLE)
-
+                screen.fill((0, 0, 0))
                 hub_image = build_static_hub(screen, player1_is_alive, player2_is_alive)
 
             if event.type == pygame.KEYDOWN and (is_human_rat or is_human_python):
