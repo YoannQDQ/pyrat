@@ -439,9 +439,9 @@ def run(
                     "Starting in " + str(remaining // 1000) + "." + (str(remaining % 1000)).zfill(3),
                     (255, 255, 255),
                     window_width,
-                    50,
+                    40,
                     window_width // 2,
-                    25,
+                    5,
                     screen,
                 )
 
@@ -505,7 +505,8 @@ def run(
         maze_width = maze_painter.surface.get_width()
 
         scale = min(available_height / maze_height, available_width / maze_width)
-        scale = math.floor(scale + 0.2)
+        if scale > 1:
+            scale = math.floor(scale)
         scaled_maze = pygame.transform.scale(maze_painter.surface, (int(maze_width * scale), int(maze_height * scale)))
 
         screen.blit(scaled_maze, ((window_width - scaled_maze.get_width()) / 2, 50 + (available_height - scaled_maze.get_height()) / 2))
