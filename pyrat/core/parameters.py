@@ -32,7 +32,7 @@ parser.add_argument("-x", "--width", type=int, metavar="x", help="Width of the m
 parser.add_argument("-y", "--height", type=int, metavar="y", help="Height of the maze", default=21)
 parser.add_argument("-d", "--density", type=float, metavar="d", help="Targetted density of walls", default=0.5)
 parser.add_argument("-p", "--pieces", type=int, metavar="p", help="Number of pieces of cheese", default=1)
-parser.add_argument("--nonsymmetric", action="store_true", help="Do not enforce symmetry of the maze")
+parser.add_argument("--symmetric", action="store_true", help="Enforce symmetry of the maze")
 parser.add_argument("-md", "--mud_density", type=float, metavar="md", help="Mud density", default=0)
 parser.add_argument("-mr", "--mud_range", type=int, metavar="mr", help="Mud range (mud is between 2 and mr)", default=10)
 parser.add_argument("--nonconnected", action="store_true", help="Does not enforce connectivity of the maze")
