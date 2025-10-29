@@ -22,6 +22,7 @@ import random
 import sys
 from dataclasses import dataclass
 from functools import cache, lru_cache
+from pathlib import Path
 
 import pygame
 
@@ -235,7 +236,7 @@ def build_static_hub(screen: pygame.Surface, player1_is_alive, player2_is_alive)
     hub = screen.copy()
     hub.fill((0, 0, 0))
     hub.set_colorkey((0, 0, 0))
-    window_width = hub.get_width()
+    window_width, window_height = hub.get_size()
     if player1_is_alive:
         rat = pygame.image.load("resources/illustrations/rat.png")
         rat = pygame.transform.scale(rat, (rat.get_width() * 2, rat.get_height() * 2))
@@ -244,6 +245,15 @@ def build_static_hub(screen: pygame.Surface, player1_is_alive, player2_is_alive)
         python = pygame.image.load("resources/illustrations/python.png")
         python = pygame.transform.scale(python, (python.get_width() * 2, python.get_height() * 2))
         hub.blit(python, (int(window_width * 11 / 12 - python.get_rect().width / 2), 60))
+
+    config_name = Path(args.config).stem
+    if config_name.startswith("level"):
+        level_number = config_name.split("_")[-1]
+        message = f"Pyrat - Level {level_number}"
+    else:
+        message = "PyRat"
+
+    draw_centered_text(message, (255, 255, 255), 80, window_height - 85, hub)
     return hub
 
 
@@ -306,6 +316,9 @@ def run(
 
     maze_painter = MazePainter(maze)
     hub_image = build_static_hub(screen, player1_is_alive, player2_is_alive)
+
+    top_message = pygame.Surface((window_width, 30))
+    top_message.fill((0, 0, 0))
 
     starting_time = pygame.time.get_ticks()
 
@@ -430,7 +443,9 @@ def run(
         if not (q_info.empty()):
             text_info = q_info.get()
         if text_info != "":
-            draw_text(text_info, (255, 255, 255), window_width, 40, window_width // 2, 5, screen)
+            top_message.fill((0, 0, 0))
+            draw_centered_text(text_info, (255, 255, 255), 25, 2, top_message)
+            screen.blit(top_message, (0, 0))
         if pygame.time.get_ticks() - starting_time < args.preparation_time:
             remaining = args.preparation_time - pygame.time.get_ticks() + starting_time
             if remaining > 0:
@@ -498,7 +513,7 @@ def run(
             maze_painter.draw_player(player2_draw_location, rotation2, "sheep")
 
         available_width = window_width * 2 / 3
-        available_height = window_height - 75
+        available_height = window_height - 120
 
         maze_height = maze_painter.surface.get_height()
         maze_width = maze_painter.surface.get_width()

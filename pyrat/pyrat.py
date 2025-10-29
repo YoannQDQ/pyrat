@@ -581,7 +581,10 @@ def run_game(screen, infoObject):
         #   soit je tappe une direction parmi N(ord) S(ud) E(st) O(uest)
         if args.step:
             if stuck1 <= 0 and not (sortir):
-                send_info("Press 'c' to run the bots, ←↑↓→ or 'q' to quit", q_info)
+                if args.python == "":
+                    send_info("Press 'c' to run the Rat, ←↑↓→ or 'q' to quit", q_info)
+                else:
+                    send_info("Press 'c' to run the bots, ←↑↓→ or 'q' to quit", q_info)
             while stuck1 <= 0 and stuck2 <= 0 and not (sortir):
                 for event in pygame.event.get():
                     if event.type == pygame.QUIT:
