@@ -15,24 +15,28 @@ Quick Guide
 Installation
 ---------------------------------
 
-- Installer uv : `pip install uv`
-- Synchroniser uv (installera toutes les dépendances) : `uv sync`
-- Lancer le jeu : `uv run main.py`
+- Installer pipx : `pip install pipx`
+- Installer uv : `pipx install uv`
+- Installe les dépendances, la version de Python, et lance le jeu : `uv run main.py`
 
 
 Configuration
 ---------------------------------
 
 Le fichier de configuration par défaut est config.ini. Vous pouvez passer un autre fichier comme argument lors de l'exécution du jeu.
-Example: `uv run main.py -c another_config.ini`
+
+**Exemples**
+-  `uv run main.py -c another_config.ini`
+-  `uv run main.py -c levels/level_01.ini`
+
 
 Le fichier de configuration est un ensemble de paires clé=valeur. Les clés disponibles sont:
-- width: largeur du labyrinthe (en cellules)
-- height: hauteur du labyrinthe (en cellules)
-- pieces : nombre de morceaux de fromage dans le labyrinthe
-- density: densité des murs dans le labyrinthe (entre 0 et 1, 0= pas de mur, 1=plein de murs)
-- rat : nom du fichier python dans le répertoire bots/ contrôlant le rat
-- step: True/False, si True le jeu est en mode pas à pas. Il s'arrête à chaque tour et attend une entrée utilisateur pour continuer (Touche directionnelle, ou `C` pour continuer le bot)
+- `width`: largeur du labyrinthe (en cellules)
+- `height`: hauteur du labyrinthe (en cellules)
+- `pieces` : nombre de morceaux de fromage dans le labyrinthe
+- `density`: densité des murs dans le labyrinthe (entre 0 et 1, 0= pas de mur, 1=plein de murs)
+- `rat` : nom du fichier python dans le répertoire bots/ contrôlant le rat
+- `step`: True/False, si True le jeu est en mode pas à pas. Il s'arrête à chaque tour et attend une entrée utilisateur pour continuer (Touche directionnelle, ou `C` pour continuer le bot)
 
 
 Bots Files
@@ -60,8 +64,8 @@ def go(neighbors_map, player_location, pieces_of_cheese):
 
 une cellule (case de la grille) est représentée par un tuple (x, y)
 - (0,0) représente la cellule en bas à gauche
-- (5,0) représente la 5ème cellule de la ligne du bas
-- (1,5) représente la 5ème cellule (en partant du bas) de la deuxième colonne
+- (5,0) représente la 6ème cellule de la ligne du bas
+- (1,5) représente la 6ème cellule (en partant du bas) de la deuxième colonne
 
 
 ### neighbors_map
