@@ -16,6 +16,7 @@
 #    You should have received a copy of the GNU General Public License
 #    along with PyRat.  If not, see <http://www.gnu.org/licenses/>.
 
+import json
 import logging
 import math
 import random
@@ -184,16 +185,19 @@ def compute_label(text, color, font_size, max_width):
     return label
 
 
-def draw_text(text, color, max_width, font_size, x, y, screen, mode="center"):
-    label = compute_label(text, color, font_size, max_width)
-    if mode == "center":
-        x = x - label.get_rect().width // 2
-    pygame.draw.rect(screen, (0, 0, 0), (x, y, label.get_rect().width, label.get_rect().height))
-    screen.blit(label, (x, y))
+def draw_text(text: str, color, max_width, font_size, x, y, screen, mode="center", fill=True):
+    labels = [compute_label(string, color, font_size, max_width) for string in text.splitlines()]
+
+    for label in labels:
+        label_x = x - label.get_rect().width // 2 if mode == "center" else x
+        if fill:
+            pygame.draw.rect(screen, (0, 0, 0), (label_x, y, label.get_rect().width, label.get_rect().height))
+        screen.blit(label, (label_x, y))
+        y += label.get_rect().height + 5
 
 
-def draw_centered_text(text, color, font_size, y, surface):
-    draw_text(text, color, surface.get_width(), font_size, surface.get_width() // 2, y, surface)
+def draw_centered_text(text, color, font_size, y, surface, fill=True):
+    draw_text(text, color, surface.get_width(), font_size, surface.get_width() // 2, y, surface, fill=fill)
 
 
 @dataclass
@@ -320,9 +324,28 @@ def run(
     top_message = pygame.Surface((window_width, 30))
     top_message.fill((0, 0, 0))
 
+    my_pause_surface = screen.copy()
+    my_pause_surface.fill((0, 0, 0))
+    my_pause_surface.set_alpha(180)
+
+    # Boooh its ugly but I am in a hurry
+    game_ending = False
+    game_over = False
+    game_over_over = False
+    message = ""
+
+    def draw_top_message(message):
+        top_message.fill((0, 0, 0))
+        draw_centered_text(message, (255, 255, 255), 25, 2, top_message)
+        screen.blit(top_message, (0, 0))
+
+    def draw_end_screen(message):
+        screen.blit(my_pause_surface, (0, 0))
+        draw_centered_text(message, (255, 255, 255), 80, window_height // 3 - 25, screen, fill=False)
+
     starting_time = pygame.time.get_ticks()
 
-    text_info = ""
+    json_info = ""
 
     player1_locations = set()
     player2_locations = set()
@@ -423,115 +446,129 @@ def run(
 
         logger.log(2, "Starting draw")
 
-        ticking = pygame.time.get_ticks()
-        turn_number = ticking // turn_time
+        # Keep the game running until the rat finishes moving
+        if game_ending:
+            game_over = pygame.time.get_ticks() >= time_to_go1
 
-        # Refresh hub and text only every turn
-        if turn_number > old_turn_number:
-            old_turn_number = turn_number
-            # Blit the static images (maze floor)
-            screen.blit(hub_image, (0, 0))
+        if not game_ending:
+            if not (q_info.empty()):
+                json_info = q_info.get()
+            if json_info != "":
+                content = json.loads(json_info)
+                message = content.get("message", "")
+                game_ending = content.get("game_over", False)
+                if not game_ending:
+                    draw_top_message(message)
 
-            draw_scores(
-                [
-                    PlayerScore(p1name, score1, moves1, miss1, stuck1, player1_is_alive),
-                    PlayerScore(p2name, score2, moves2, miss2, stuck2, player2_is_alive),
-                ],
-                screen,
-            )
+        if game_over and not game_over_over:
+            game_over_over = True
+            draw_end_screen(message)
+            pygame.display.flip()
 
-        if not (q_info.empty()):
-            text_info = q_info.get()
-        if text_info != "":
-            top_message.fill((0, 0, 0))
-            draw_centered_text(text_info, (255, 255, 255), 25, 2, top_message)
-            screen.blit(top_message, (0, 0))
-        if pygame.time.get_ticks() - starting_time < args.preparation_time:
-            remaining = args.preparation_time - pygame.time.get_ticks() + starting_time
-            if remaining > 0:
-                draw_text(
-                    "Starting in " + str(remaining // 1000) + "." + (str(remaining % 1000)).zfill(3),
-                    (255, 255, 255),
-                    window_width,
-                    40,
-                    window_width // 2,
-                    5,
+        if not game_over:
+            ticking = pygame.time.get_ticks()
+            turn_number = ticking // turn_time
+
+            # Refresh hub and text only every turn
+            if turn_number > old_turn_number:
+                old_turn_number = turn_number
+                # Blit the static images (maze floor)
+                screen.blit(hub_image, (0, 0))
+
+                draw_scores(
+                    [
+                        PlayerScore(p1name, score1, moves1, miss1, stuck1, player1_is_alive),
+                        PlayerScore(p2name, score2, moves2, miss2, stuck2, player2_is_alive),
+                    ],
                     screen,
                 )
 
-        maze_painter.draw_floor()
+            if pygame.time.get_ticks() - starting_time < args.preparation_time:
+                remaining = args.preparation_time - pygame.time.get_ticks() + starting_time
+                if remaining > 0:
+                    draw_text(
+                        "Starting in " + str(remaining // 1000) + "." + (str(remaining % 1000)).zfill(3),
+                        (255, 255, 255),
+                        window_width,
+                        40,
+                        window_width // 2,
+                        5,
+                        screen,
+                    )
+            maze_painter.draw_floor()
+            # Draw explored cells
+            if show_path:
+                if player1_is_alive and player1_location not in player1_locations:
+                    player1_locations.add(player1_location)
+                    maze_painter.draw_explored_cell(player1_location, color=RAT_COLOR)
 
-        # Draw explored cells
-        if show_path:
-            if player1_is_alive and player1_location not in player1_locations:
-                player1_locations.add(player1_location)
-                maze_painter.draw_explored_cell(player1_location, color=RAT_COLOR)
+                if player2_is_alive and player2_location not in player2_locations:
+                    player2_locations.add(player2_location)
+                    maze_painter.draw_explored_cell(player2_location, color=PYTHON_COLOR)
+            maze_painter.draw_walls()
+            maze_painter.draw_pieces_of_cheese(pieces_of_cheese)
 
-            if player2_is_alive and player2_location not in player2_locations:
-                player2_locations.add(player2_location)
-                maze_painter.draw_explored_cell(player2_location, color=PYTHON_COLOR)
-        maze_painter.draw_walls()
-        maze_painter.draw_pieces_of_cheese(pieces_of_cheese)
-
-        if not (args.desactivate_animations):
-            if time_to_go1 <= pygame.time.get_ticks() or player1_location == new_player1_location:
-                player1_location = new_player1_location
+            if not (args.desactivate_animations):
+                if time_to_go1 <= pygame.time.get_ticks() or player1_location == new_player1_location:
+                    player1_location = new_player1_location
+                    player1_draw_location = player1_location
+                else:
+                    prop = (time_to_go1 - pygame.time.get_ticks()) / (maze[player1_location][new_player1_location] * turn_time)
+                    i, j = player1_location
+                    ii, jj = new_player1_location
+                    player1_draw_location = i * prop + ii * (1 - prop), j * prop + jj * (1 - prop)
+                if time_to_go2 <= pygame.time.get_ticks() or player2_location == new_player2_location:
+                    player2_location = new_player2_location
+                    player2_draw_location = player2_location
+                else:
+                    prop = (time_to_go2 - pygame.time.get_ticks()) / (maze[player2_location][new_player2_location] * turn_time)
+                    i, j = player2_location
+                    ii, jj = new_player2_location
+                    player2_draw_location = i * prop + ii * (1 - prop), j * prop + jj * (1 - prop)
+            else:
                 player1_draw_location = player1_location
-            else:
-                prop = (time_to_go1 - pygame.time.get_ticks()) / (maze[player1_location][new_player1_location] * turn_time)
-                i, j = player1_location
-                ii, jj = new_player1_location
-                player1_draw_location = i * prop + ii * (1 - prop), j * prop + jj * (1 - prop)
-            if time_to_go2 <= pygame.time.get_ticks() or player2_location == new_player2_location:
-                player2_location = new_player2_location
                 player2_draw_location = player2_location
-            else:
-                prop = (time_to_go2 - pygame.time.get_ticks()) / (maze[player2_location][new_player2_location] * turn_time)
-                i, j = player2_location
-                ii, jj = new_player2_location
-                player2_draw_location = i * prop + ii * (1 - prop), j * prop + jj * (1 - prop)
-        else:
-            player1_draw_location = player1_location
-            player2_draw_location = player2_location
 
-        def rotation(old_loc, new_loc):
-            if old_loc[1] < new_loc[1]:
+            def rotation(old_loc, new_loc):
+                if old_loc[1] < new_loc[1]:
+                    return 0
+                if old_loc[1] > new_loc[1]:
+                    return 180
+                if old_loc[0] < new_loc[0]:
+                    return 270
+                if old_loc[0] > new_loc[0]:
+                    return 90
                 return 0
-            if old_loc[1] > new_loc[1]:
-                return 180
-            if old_loc[0] < new_loc[0]:
-                return 270
-            if old_loc[0] > new_loc[0]:
-                return 90
-            return 0
 
-        if player1_is_alive:
-            rotation1 = rotation(old_player1_location, new_player1_location)
-            maze_painter.draw_player(player1_draw_location, rotation1, "rat")
-        if player2_is_alive:
-            rotation2 = rotation(old_player2_location, new_player2_location)
-            maze_painter.draw_player(player2_draw_location, rotation2, "sheep")
+            if player1_is_alive:
+                rotation1 = rotation(old_player1_location, new_player1_location)
+                maze_painter.draw_player(player1_draw_location, rotation1, "rat")
+            if player2_is_alive:
+                rotation2 = rotation(old_player2_location, new_player2_location)
+                maze_painter.draw_player(player2_draw_location, rotation2, "sheep")
 
-        available_width = window_width * 2 / 3
-        available_height = window_height - 120
+            available_width = window_width * 2 / 3
+            available_height = window_height - 120
 
-        maze_height = maze_painter.surface.get_height()
-        maze_width = maze_painter.surface.get_width()
+            maze_height = maze_painter.surface.get_height()
+            maze_width = maze_painter.surface.get_width()
 
-        scale = min(available_height / maze_height, available_width / maze_width)
-        if scale > 1:
-            scale = math.floor(scale)
-        scaled_maze = pygame.transform.scale(maze_painter.surface, (int(maze_width * scale), int(maze_height * scale)))
+            scale = min(available_height / maze_height, available_width / maze_width)
+            if scale > 1:
+                scale = math.floor(scale)
+            scaled_maze = pygame.transform.scale(maze_painter.surface, (int(maze_width * scale), int(maze_height * scale)))
 
-        screen.blit(scaled_maze, ((window_width - scaled_maze.get_width()) / 2, 50 + (available_height - scaled_maze.get_height()) / 2))
+            screen.blit(scaled_maze, ((window_width - scaled_maze.get_width()) / 2, 50 + (available_height - scaled_maze.get_height()) / 2))
 
-        logger.log(2, "Drawing on screen")
-        pygame.display.flip()
+            logger.log(2, "Drawing on screen")
+            pygame.display.flip()
+
         if not (args.desactivate_animations):
             clock.tick(60)
         else:
             if not (args.synchronous):
                 clock.tick(1000 / turn_time)
+
     logger.log(2, "Exiting rendering")
     q_render_in.put("quit")
     if is_human_python:

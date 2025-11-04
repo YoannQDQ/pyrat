@@ -18,6 +18,7 @@
 
 # Imports
 import importlib.util
+import json
 import logging
 import multiprocessing as mp
 import os
@@ -229,11 +230,12 @@ def send_turn(q, player1_location, player2_location, score1, score2, pieces_of_c
 
 # This function helps communicate with the user of the program, either through
 # the graphical interface or command line
-def send_info(text, q_info):
+def send_info(text, q_info, game_over=False):
+    content = {"message": text, "game_over": game_over}
     if not (args.nodrawing):
-        q_info.put(text)
+        q_info.put(json.dumps(content))
     else:
-        print(text, file=sys.stderr)
+        print(content, file=sys.stderr)
 
 
 def clip_pos(pos, width, height):
@@ -504,30 +506,31 @@ def run_game(screen, infoObject):
         if args.rat != "" and args.python != "":
             if score1 == score2 and score1 >= args.pieces / 2:
                 send_info(
-                    f"The Rat ({p1name}) and the Python ({p2name}) got the same number of pieces of cheese!",
+                    f"The Rat ({p1name}) and the Python ({p2name}) got the same number of pieces of cheese!\nPress 'q' to quit",
                     q_info,
+                    game_over=True,
                 )
                 break
             if score1 > args.pieces / 2:
-                send_info(f"The Rat ({p1name}) won the match!", q_info)
+                send_info(f"The Rat ({p1name}) won the match!\nPress 'q' to quit", q_info, game_over=True)
                 win1 = win1 + 1
                 break
             if score2 > args.pieces / 2:
-                send_info(f"The Python ({p2name}) won the match!", q_info)
+                send_info(f"The Python ({p2name}) won the match!\nPress 'q' to quit", q_info, game_over=True)
                 win2 = win2 + 1
                 break
         else:
             if score1 >= args.pieces:
-                send_info(f"The Rat ({p1name}) got all pieces of cheese!", q_info)
+                send_info(f"The Rat ({p1name}) got all pieces of cheese!\nPress 'q' to quit", q_info, game_over=True)
                 win1 = win1 + 1
                 break
             if score2 >= args.pieces:
-                send_info(f"The Python ({p2name}) got all pieces of cheese!", q_info)
+                send_info(f"The Python ({p2name}) got all pieces of cheese!\nPress 'q' to quit", q_info, game_over=True)
                 win2 = win2 + 1
                 break
         # Or if there is no more cheese
         if len(pieces_of_cheese) == 0:
-            send_info("No more pieces of cheese!", q_info)
+            send_info("No more pieces of cheese!\nPress 'q' to quit", q_info, game_over=True)
             break
 
         # If players can move, ask them their next decision
