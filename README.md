@@ -14,10 +14,13 @@ Quick Guide
 
 Installation
 ---------------------------------
-
-- Installer pipx : `pip install pipx`
-- Installer uv : `pipx install uv`
-- Installe les dépendances, la version de Python, et lance le jeu : `uv run main.py`
+- Ouvrir le dossier pyrat dans vs code
+- Ouvrir un terminal (console) (Ctrl+Shift+%) ou via le menu Terminal/Nouveau Terminal
+- Dans la console, lancer la commande suivante pour insaller uv : `powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"`
+- Une fois uv installé, installer et lancer PyRat avec la commande suivante (toujours dans la console): `uv run main.py`
+- Le jeu devrait se lancer. Utiliser les touches directionnelles pour déplacer le rat manuellement, ou laisser le bot jouer à sa place.
+- Pour pouvoir lancer le jeu via VSCode, sélectionner l'environnement Python (Ctrl+Shift+P puis "Python: Select Interpreter" et choisir "pyrat")
+- Vous pouvez maintenant lancer le jeu en ouvrant le fichier main.py et en cliquant sur "Run Python File" en haut à droite.
 
 
 Configuration
@@ -62,10 +65,10 @@ def go(neighbors_map, player_location, pieces_of_cheese):
 
 ### Cellule
 
-une cellule (case de la grille) est représentée par un tuple (x, y)
-- (0,0) représente la cellule en bas à gauche
-- (5,0) représente la 6ème cellule de la ligne du bas
-- (1,5) représente la 6ème cellule (en partant du bas) de la deuxième colonne
+une cellule (case de la grille) est représentée par un tuple (i, j)
+- (0,0) représente la cellule en haut à gauche
+- (5,0) représente la cellule de la 6ème ligne, première colonne
+- (1,5) représente la cellule de la 2ème ligne, 6ème colonne
 
 
 ### neighbors_map
@@ -82,9 +85,9 @@ Si on a un mur entre deux cellules, elles ne sont pas considérées comme voisin
 
 ### player_location
 
-player_location est la cellule où se trouve le joueur (coordonnées x,y)
+player_location est la cellule où se trouve le joueur (coordonnées i,j) i: row; j: column
 
-**Exemple** : (0,0) => Le joueur est dans la cellule (0,0), en bas à gauche
+**Exemple** : (0,0) => Le joueur est dans la cellule (0,0), en bhaut à gauche
 
 ### pieces_of_cheese
 
