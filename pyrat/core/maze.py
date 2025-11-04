@@ -20,6 +20,8 @@ import random
 import sys
 from pathlib import Path
 
+from pyrat.core.bot_utils import transpose_cell
+
 
 # compute the connected component of a given initial cell with depth-first search
 def connected_region(maze, cell, connected, possible_border):
@@ -121,19 +123,19 @@ def generate_maze(width, height, target_density, connected, symmetry, mud_densit
                 new_possible_border = []
                 for i, j in possible_border:
                     is_candidate = False
-                    if not ((i + 1, j) in maze[(i, j)]) and i + 1 < width:
+                    if (i + 1, j) not in maze[(i, j)] and i + 1 < width:
                         if connected[i + 1][j] == 0:
                             border.append(((i, j), (i + 1, j)))
                             is_candidate = True
-                    if not ((i - 1, j) in maze[(i, j)]) and i > 0:
+                    if (i - 1, j) not in maze[(i, j)] and i > 0:
                         if connected[i - 1][j] == 0:
                             border.append(((i, j), (i - 1, j)))
                             is_candidate = True
-                    if not ((i, j + 1) in maze[(i, j)]) and j + 1 < height:
+                    if (i, j + 1) not in maze[(i, j)] and j + 1 < height:
                         if connected[i][j + 1] == 0:
                             border.append(((i, j), (i, j + 1)))
                             is_candidate = True
-                    if not ((i, j - 1) in maze[(i, j)]) and j > 0:
+                    if (i, j - 1) not in maze[(i, j)] and j > 0:
                         if connected[i][j - 1] == 0:
                             border.append(((i, j), (i, j - 1)))
                             is_candidate = True
@@ -192,7 +194,7 @@ def generate_pieces_of_cheese(nb_pieces, width, height, symmetry, player1_locati
     for i in range(width):
         for j in range(height):
             if (
-                (not (symmetry) or not ((i, j) in considered))
+                (not (symmetry) or (i, j) not in considered)
                 and (i, j) != player1_location
                 and (i, j) != player2_location
                 and (i, j) not in cheese_location
@@ -228,15 +230,25 @@ def generate_pieces_of_cheese_notrandom(nb_pieces, width, height, symmetry, play
     try:
         test = open(cheese_location)
         for l in range(nb_pieces):
-            x, y = (int(i) for i in test.readline().split(","))
-            if x < 0 or x >= width or y < 0 or y >= height:
+            i, j = (int(i) for i in test.readline().split(","))
+            if (i, j) == player1_location or (i, j) == player2_location:
+                sys.exit("cheese_location invalid argument: cheese on player")
+            if i < 0 or i >= height or j < 0 or j >= width:
                 sys.exit("One of the cheese location is incorrect (line " + str(l + 1) + ")")
-            position.append((x, y))
+            position.append((i, j))
         test.close()
     except FileNotFoundError:
         if "," in cheese_location:
-            x, y = map(int, cheese_location.split(","))
-            position.append((x, y))
+            i, j = map(int, cheese_location.split(","))
+            if (i, j) == player1_location or (i, j) == player2_location:
+                sys.exit("cheese_location invalid argument: cheese on player")
+            if i < 0 or i >= height or j < 0 or j >= width:
+                sys.exit(f"cheese_location invalid argument: {cheese_location}")
+            position.append((i, j))
         else:
             print("cheese_location invalid argument", file=sys.stderr)
+
+    # Transpose positions from i,j to x,y
+    position = [transpose_cell(pos, height, reverse=True) for pos in position]
+
     return generate_pieces_of_cheese(nb_pieces, width, height, symmetry, player1_location, player2_location, start_random, cheese_location=position)

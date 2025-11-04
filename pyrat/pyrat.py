@@ -33,7 +33,7 @@ from threading import Thread
 
 import pygame
 
-from pyrat.core.bot_utils import MOVE_E, MOVE_N, MOVE_O, MOVE_S, neighbors_map
+from pyrat.core.bot_utils import MOVE_E, MOVE_N, MOVE_O, MOVE_S, neighbors_map, transpose_cell
 from pyrat.core.display import *
 from pyrat.core.maze import *
 from pyrat.core.parameters import *
@@ -145,7 +145,12 @@ def player(pet, filename, q_in, q_out, q_quit, width, height, preparation_time, 
                 before = time.time()
                 # essayer de mettre ici une saisie dans le cas "STEP"
                 # decision = go(maze, width, height, player1_location, player2_location, score1, score2, pieces_of_cheese, turn_time)
-                decision = go(neighbors_map(maze), player1_location, pieces_of_cheese)
+
+                # Translate form x, y indexing to i, j indexing
+                bot_location = transpose_cell(player1_location, height)
+                bot_cheese = [transpose_cell(c, height) for c in pieces_of_cheese]
+
+                decision = go(neighbors_map(maze, height), bot_location, bot_cheese)
                 after = time.time()
                 turn_delay = turn_delay + (after - before)
                 turn_delay_count = turn_delay_count + 1
@@ -232,7 +237,8 @@ def send_info(text, q_info):
 
 
 def clip_pos(pos, width, height):
-    x, y = [int(i) for i in pos.split(",")]
+    i, j = [int(i) for i in pos.split(",")]
+    x, y = transpose_cell((i, j), height, reverse=True)
     x = max(0, min(x, width - 1))
     y = max(0, min(y, height - 1))
     return (x, y)

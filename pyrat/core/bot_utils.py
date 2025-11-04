@@ -24,11 +24,18 @@ def direction(from_cell, to_cell):
     return direction
 
 
-def neighbors_map(maze_map):
+def neighbors_map(maze_map, height):
     res = {}
     for cell in maze_map:
-        res[cell] = list(maze_map[cell].keys())
+        res[transpose_cell(cell, height)] = [transpose_cell(c, height) for c in maze_map[cell]]
     return res
+
+
+def transpose_cell(cell, maze_height, reverse=False):
+    """Transpose a cell from (x, y) to (i, j) indexing"""
+    if reverse:
+        return (cell[1], maze_height - 1 - cell[0])
+    return (maze_height - 1 - cell[1], cell[0])
 
 
 ##################################################

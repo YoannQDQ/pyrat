@@ -15,5 +15,4 @@ def go(neighbors_map, player_location, pieces_of_cheese):
     else:
         target = random.choice(new_choices)
         ariane_thread.append(player_location)
-
     return direction(player_location, target)

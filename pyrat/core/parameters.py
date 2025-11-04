@@ -72,6 +72,8 @@ parser.add_argument("--resultat", action="store_true", help="Print the result of
 parser.add_argument("--postprocessing", action="store_true", help="Perform postprocessing (useful for tournaments)")
 parser.add("-c", "--config", required=False, is_config_file=True, help="config file path (overrides other config files)", default=DEFAULT_CONFIG_FILE)
 args = parser.parse_args()
+
+args.pieces = max(1, min(args.height * args.width - 2, args.pieces))
 args.window_height = int(10 * args.window_width / 16)
 
 # Check for conflicts
