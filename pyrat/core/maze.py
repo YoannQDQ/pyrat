@@ -178,8 +178,8 @@ def generate_pieces_of_cheese(nb_pieces, width, height, symmetry, player1_locati
             if player2_location == (0, 0):
                 player1_location = (width - 1, height - 1)
         if player2_location == (-1, -1):
-            player2_location = (width - 1, height - 1)
-            if player1_location == (width - 1, height - 1):
+            player2_location = (width - player1_location[0] - 1, height - player1_location[1] - 1)
+            if player1_location == player2_location:
                 player2_location = (0, 0)
     pieces = []
     candidates = []

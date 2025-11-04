@@ -33,6 +33,7 @@ parser.add_argument("-y", "--height", type=int, metavar="y", help="Height of the
 parser.add_argument("-d", "--density", type=float, metavar="d", help="Targetted density of walls", default=0.5)
 parser.add_argument("-p", "--pieces", type=int, metavar="p", help="Number of pieces of cheese", default=1)
 parser.add_argument("--symmetric", action="store_true", help="Enforce symmetry of the maze")
+parser.add_argument("--no-symmetric", action="store_true", help="Disable symmetry of the maze")
 parser.add_argument("-md", "--mud_density", type=float, metavar="md", help="Mud density", default=0)
 parser.add_argument("-mr", "--mud_range", type=int, metavar="mr", help="Mud range (mud is between 2 and mr)", default=10)
 parser.add_argument("--nonconnected", action="store_true", help="Does not enforce connectivity of the maze")
@@ -75,6 +76,10 @@ args = parser.parse_args()
 
 args.pieces = max(1, min(args.height * args.width - 2, args.pieces))
 args.window_height = int(10 * args.window_width / 16)
+
+
+if args.python and not args.no_symmetric:
+    args.symmetric = True
 
 # Check for conflicts
 if args.synchronous and not (args.desactivate_animations):
