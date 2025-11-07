@@ -17,7 +17,8 @@ Installation
 - Ouvrir le dossier pyrat dans vs code
 - Ouvrir un terminal (console) (Ctrl+Shift+%) ou via le menu Terminal/Nouveau Terminal
 - Dans la console, lancer la commande suivante pour insaller uv : `powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"`
-- Une fois uv installé, installer et lancer PyRat avec la commande suivante (toujours dans la console): `uv run main.py`
+- Tenter de lancer uv, en entrant simplement `uv` dans la console. Si la commande échoue, relancer VSCode
+- Une fois uv correctement installé, installer et lancer PyRat avec la commande suivante (toujours dans la console): `uv run main.py`.
 - Le jeu devrait se lancer. Utiliser les touches directionnelles pour déplacer le rat manuellement, ou laisser le bot jouer à sa place.
 - Pour pouvoir lancer le jeu via VSCode, sélectionner l'environnement Python (Ctrl+Shift+P puis "Python: Select Interpreter" et choisir "pyrat")
 - Vous pouvez maintenant lancer le jeu en ouvrant le fichier main.py et en cliquant sur "Run Python File" en haut à droite.
