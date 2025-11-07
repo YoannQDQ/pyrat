@@ -20,17 +20,18 @@ import json
 import logging
 import math
 import random
-import sys
 from dataclasses import dataclass
 from functools import cache, lru_cache
 from pathlib import Path
 
 import pygame
 
+from pyrat.core.bot_utils import MOVE_E, MOVE_N, MOVE_O, MOVE_S
 from pyrat.core.parameters import args
 from pyrat.core.spritesheet import image_at
 
 logger = logging.getLogger("display")
+
 
 # Yellow color for python
 PYTHON_COLOR = (255, 255, 0)
@@ -261,7 +262,7 @@ def build_static_hub(screen: pygame.Surface, player1_is_alive, player2_is_alive)
     return hub
 
 
-def run(
+def run_display_loop(
     maze,
     q,
     q_render_in,
@@ -291,8 +292,6 @@ def run(
     clock = pygame.time.Clock()
     new_player1_location = player1_location
     new_player2_location = player2_location
-    old_player1_location = new_player1_location
-    old_player2_location = new_player2_location
     time_to_go1 = pygame.time.get_ticks()
     time_to_go2 = pygame.time.get_ticks()
     score1 = 0
@@ -389,10 +388,9 @@ def run(
                 miss2,
                 stuck1,
                 stuck2,
+                decision1,
+                decision2,
             ) = q.get()
-
-            old_player1_location = new_player1_location
-            old_player2_location = new_player2_location
 
             if not (args.desactivate_animations):
                 if nnew_player1_location != new_player1_location:
@@ -492,23 +490,23 @@ def run(
                 player1_draw_location = player1_location
                 player2_draw_location = player2_location
 
-            def rotation(old_loc, new_loc):
-                if old_loc[1] < new_loc[1]:
+            def get_rotation(decision):
+                if decision == MOVE_N:
                     return 0
-                if old_loc[1] > new_loc[1]:
-                    return 180
-                if old_loc[0] < new_loc[0]:
+                if decision == MOVE_E:
                     return 270
-                if old_loc[0] > new_loc[0]:
+                if decision == MOVE_O:
                     return 90
-                return 0
+                if decision == MOVE_S:
+                    return 180
+                return 180
 
             if player1_is_alive:
-                rotation1 = rotation(old_player1_location, new_player1_location)
+                rotation1 = get_rotation(decision1)
                 maze_painter.draw_player(player1_draw_location, rotation1, "rat")
             if player2_is_alive:
-                rotation2 = rotation(old_player2_location, new_player2_location)
-                maze_painter.draw_player(player2_draw_location, rotation2, "sheep")
+                rotation2 = get_rotation(decision2)
+                maze_painter.draw_player(player2_draw_location, rotation2, "python")
 
             available_width = window_width * 2 / 3
             available_height = window_height - 120

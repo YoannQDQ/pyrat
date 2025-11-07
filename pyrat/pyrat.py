@@ -35,7 +35,7 @@ from threading import Thread
 import pygame
 
 from pyrat.core.bot_utils import MOVE_E, MOVE_N, MOVE_O, MOVE_S, neighbors_map, transpose_cell
-from pyrat.core.display import *
+from pyrat.core.display import run_display_loop
 from pyrat.core.maze import *
 from pyrat.core.parameters import *
 
@@ -396,6 +396,9 @@ def run_game(screen, infoObject):
     stucks1 = 0
     stucks2 = 0
 
+    decision1 = ""
+    decision2 = ""
+
     turns = 0
     win1 = 0
     win2 = 0
@@ -499,6 +502,8 @@ def run_game(screen, infoObject):
                 miss2,
                 stucks1,
                 stucks2,
+                decision1,
+                decision2,
             )
         )
 
