@@ -304,18 +304,6 @@ def run(
     stuck1 = 0
     stuck2 = 0
 
-    logger.log(2, "Trying to initialize Joystick")
-    pygame.joystick.init()
-    try:
-        j0 = pygame.joystick.Joystick(0)
-        j0.init()
-        print("Enabled joystick: " + j0.get_name() + " with " + str(j0.get_numaxes()) + " axes", file=sys.stderr)
-        j1 = pygame.joystick.Joystick(1)
-        j1.init()
-        print("Enabled joystick: " + j1.get_name() + " with " + str(j1.get_numaxes()) + " axes", file=sys.stderr)
-    except pygame.error:
-        pass
-
     logger.log(2, "Building background image")
 
     maze_painter = MazePainter(maze)
@@ -387,31 +375,6 @@ def run(
                 if event.key == pygame.K_KP5:
                     play(q2_out, "D")
 
-        logger.log(2, "Processing joysticks")
-        try:
-            x, y = j0.get_axis(3), j0.get_axis(4)
-            if x < -0.7:
-                play(q1_out, "L")
-            if x > 0.7:
-                play(q1_out, "R")
-            if y < -0.7:
-                play(q1_out, "U")
-            if y > 0.7:
-                play(q1_out, "D")
-        except:
-            pass
-        try:
-            x, y = j1.get_axis(3), j1.get_axis(4)
-            if x < -0.7:
-                play(q2_out, "L")
-            if x > 0.7:
-                play(q2_out, "R")
-            if y < -0.7:
-                play(q2_out, "U")
-            if y > 0.7:
-                play(q2_out, "D")
-        except:
-            pass
         logger.log(2, "Looking for updates from core program")
         while not (q.empty()):
             (
