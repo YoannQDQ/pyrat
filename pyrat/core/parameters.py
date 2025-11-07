@@ -89,8 +89,6 @@ if args.nodrawing:
     args.auto_exit = True
 if args.tests > 1:
     args.auto_exit = True
-is_human_python = args.python == "human"
-is_human_rat = args.rat == "human"
 
 if args.width < 1 or args.height < 1:
     sys.exit("maze is too small")

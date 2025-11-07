@@ -231,12 +231,6 @@ def draw_scores(players: list[PlayerScore], screen: pygame.Surface):
             screen.blit(dest, (x, y_offset))
 
 
-def play(q_out, move):
-    while not q_out.empty():
-        q_out.get()
-    q_out.put(move)
-
-
 def build_static_hub(screen: pygame.Surface, player1_is_alive, player2_is_alive):
     hub = screen.copy()
     hub.fill((0, 0, 0))
@@ -269,10 +263,6 @@ def run_display_loop(
     q_quit,
     p1name,
     p2name,
-    q1_out,
-    q2_out,
-    is_human_rat,
-    is_human_python,
     show_path,
     q_info,
     pieces_of_cheese,
@@ -355,24 +345,6 @@ def run_display_loop(
                         window_width, window_height = event.w, event.h
                 screen.fill((0, 0, 0))
                 hub_image = build_static_hub(screen, player1_is_alive, player2_is_alive)
-
-            if event.type == pygame.KEYDOWN and (is_human_rat or is_human_python):
-                if event.key == pygame.K_LEFT:
-                    play(q1_out, "L")
-                if event.key == pygame.K_RIGHT:
-                    play(q1_out, "R")
-                if event.key == pygame.K_UP:
-                    play(q1_out, "U")
-                if event.key == pygame.K_DOWN:
-                    play(q1_out, "D")
-                if event.key == pygame.K_KP4:
-                    play(q2_out, "L")
-                if event.key == pygame.K_KP6:
-                    play(q2_out, "R")
-                if event.key == pygame.K_KP8:
-                    play(q2_out, "U")
-                if event.key == pygame.K_KP5:
-                    play(q2_out, "D")
 
         logger.log(2, "Looking for updates from core program")
         while not (q.empty()):
@@ -532,7 +504,3 @@ def run_display_loop(
 
     logger.log(2, "Exiting rendering")
     q_render_in.put("quit")
-    if is_human_python:
-        q2_out.put("")
-    if is_human_rat:
-        q1_out.put("")

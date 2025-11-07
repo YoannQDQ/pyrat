@@ -59,9 +59,8 @@ def generate_maze(width, height, target_density, connected, symmetry, mud_densit
                     maze[(i, j)][(i + 1, j)] = int(line[3])
         line = lines[height * width + 2].split(" ")
         pieces_of_cheese = []
-        for i in range(len(line)):
-            l = int(line[i])
-            pieces_of_cheese.append((l % width, l // width))
+        for index in line:
+            pieces_of_cheese.append((int(index) % width, int(index) // width))
     else:
         random.seed(seed)
         # Start with purely random maze
@@ -123,22 +122,18 @@ def generate_maze(width, height, target_density, connected, symmetry, mud_densit
                 new_possible_border = []
                 for i, j in possible_border:
                     is_candidate = False
-                    if (i + 1, j) not in maze[(i, j)] and i + 1 < width:
-                        if connected[i + 1][j] == 0:
-                            border.append(((i, j), (i + 1, j)))
-                            is_candidate = True
-                    if (i - 1, j) not in maze[(i, j)] and i > 0:
-                        if connected[i - 1][j] == 0:
-                            border.append(((i, j), (i - 1, j)))
-                            is_candidate = True
-                    if (i, j + 1) not in maze[(i, j)] and j + 1 < height:
-                        if connected[i][j + 1] == 0:
-                            border.append(((i, j), (i, j + 1)))
-                            is_candidate = True
-                    if (i, j - 1) not in maze[(i, j)] and j > 0:
-                        if connected[i][j - 1] == 0:
-                            border.append(((i, j), (i, j - 1)))
-                            is_candidate = True
+                    if (i + 1, j) not in maze[(i, j)] and i + 1 < width and connected[i + 1][j] == 0:
+                        border.append(((i, j), (i + 1, j)))
+                        is_candidate = True
+                    if (i - 1, j) not in maze[(i, j)] and i > 0 and connected[i - 1][j] == 0:
+                        border.append(((i, j), (i - 1, j)))
+                        is_candidate = True
+                    if (i, j + 1) not in maze[(i, j)] and j + 1 < height and connected[i][j + 1] == 0:
+                        border.append(((i, j), (i, j + 1)))
+                        is_candidate = True
+                    if (i, j - 1) not in maze[(i, j)] and j > 0 and connected[i][j - 1] == 0:
+                        border.append(((i, j), (i, j - 1)))
+                        is_candidate = True
                     if is_candidate:
                         new_possible_border.append((i, j))
                 possible_border = new_possible_border
@@ -158,17 +153,17 @@ def generate_maze(width, height, target_density, connected, symmetry, mud_densit
                 connected[bi][bj] = 1
                 connected_region(maze, b, connected, possible_border)
                 possible_border.append(b)
-                if symmetry:
-                    if connected[width - 1 - bi][height - 1 - bj] == 0 and connected[width - 1 - ai][height - 1 - aj] == 1:
-                        connected[width - 1 - bi][height - 1 - bj] = 1
-                        connected_region(maze, bsym, connected, possible_border)
-                        possible_border.append(bsym)
+                if symmetry and connected[width - 1 - bi][height - 1 - bj] == 0 and connected[width - 1 - ai][height - 1 - aj] == 1:
+                    connected[width - 1 - bi][height - 1 - bj] = 1
+                    connected_region(maze, bsym, connected, possible_border)
+                    possible_border.append(bsym)
         pieces_of_cheese = []
     return width, height, pieces_of_cheese, maze
 
 
 # Generate pieces of cheese
-def generate_pieces_of_cheese(nb_pieces, width, height, symmetry, player1_location, player2_location, start_random, cheese_location=[]):
+def generate_pieces_of_cheese(nb_pieces, width, height, symmetry, player1_location, player2_location, start_random, cheese_location=None):
+    cheese_location = cheese_location or []
     if start_random:
         remaining = nb_pieces + 2
     else:
@@ -206,10 +201,7 @@ def generate_pieces_of_cheese(nb_pieces, width, height, symmetry, player1_locati
     while remaining > 0:
         if len(candidates) == 0 and len(cheese_location) == 0:
             sys.exit("Too many pieces of cheese for that dimension of maze")
-        if len(cheese_location) > 0:
-            chosen = cheese_location.pop()
-        else:
-            chosen = candidates[random.randrange(len(candidates))]
+        chosen = cheese_location.pop() if len(cheese_location) > 0 else candidates[random.randrange(len(candidates))]
         pieces.append(chosen)
         if symmetry:
             a, b = chosen
@@ -228,15 +220,14 @@ def generate_pieces_of_cheese(nb_pieces, width, height, symmetry, player1_locati
 def generate_pieces_of_cheese_notrandom(nb_pieces, width, height, symmetry, player1_location, player2_location, start_random, cheese_location):
     position = []
     try:
-        test = open(cheese_location)
-        for l in range(nb_pieces):
-            i, j = (int(i) for i in test.readline().split(","))
-            if (i, j) == player1_location or (i, j) == player2_location:
-                sys.exit("cheese_location invalid argument: cheese on player")
-            if i < 0 or i >= height or j < 0 or j >= width:
-                sys.exit("One of the cheese location is incorrect (line " + str(l + 1) + ")")
-            position.append((i, j))
-        test.close()
+        with Path(cheese_location).open() as test:
+            for line in range(nb_pieces):
+                i, j = (int(i) for i in test.readline().split(","))
+                if (i, j) == player1_location or (i, j) == player2_location:
+                    sys.exit("cheese_location invalid argument: cheese on player")
+                if i < 0 or i >= height or j < 0 or j >= width:
+                    sys.exit("One of the cheese location is incorrect (line " + str(line + 1) + ")")
+                position.append((i, j))
     except FileNotFoundError:
         if "," in cheese_location:
             i, j = map(int, cheese_location.split(","))
