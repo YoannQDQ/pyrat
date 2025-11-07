@@ -527,7 +527,7 @@ def run(
             pygame.display.flip()
 
         if not (args.desactivate_animations):
-            clock.tick(60)
+            clock.tick(30)
         else:
             if not (args.synchronous):
                 clock.tick(1000 / turn_time)
