@@ -15,9 +15,10 @@
 #
 #    You should have received a copy of the GNU General Public License
 #    along with PyRat.  If not, see <http://www.gnu.org/licenses/>.
-
 import random
+import re
 import sys
+from ast import literal_eval
 from pathlib import Path
 
 from pyrat.core.bot_utils import transpose_cell
@@ -113,7 +114,7 @@ def generate_maze(width, height, target_density, connected, symmetry, mud_densit
 
         # Then connect it
         if connected:
-            connected = [[0 for x in range(height)] for y in range(width)]
+            connected = [[0] * height] * width
             possible_border = [(0, height - 1)]
             connected[0][height - 1] = 1
             connected_region(maze, (0, height - 1), connected, possible_border)
@@ -161,85 +162,94 @@ def generate_maze(width, height, target_density, connected, symmetry, mud_densit
     return width, height, pieces_of_cheese, maze
 
 
-# Generate pieces of cheese
-def generate_pieces_of_cheese(nb_pieces, width, height, symmetry, player1_location, player2_location, start_random, cheese_location=None):
-    cheese_location = cheese_location or []
-    if start_random:
-        remaining = nb_pieces + 2
-    else:
-        remaining = nb_pieces
+def generate_players_positions(width, height, symmetry, player1_location, player2_location, start_random):
+    if symmetry:
+        if start_random:
+            player1_location = (random.randrange(width // 2 - 1), random.randrange(height // 2 - 1))
         if player1_location == (-1, -1):
             player1_location = (0, 0)
-            if player2_location == (0, 0):
-                player1_location = (width - 1, height - 1)
+        player2_location = width - player1_location[0] - 1, height - player1_location[1] - 1
+
+    else:
+        if start_random:
+            player1_location = (random.randrange(width), random.randrange(height))
+            player2_location = (random.randrange(width), random.randrange(height))
+        if player1_location == (-1, -1):
+            player1_location = (0, 0)
         if player2_location == (-1, -1):
-            player2_location = (width - player1_location[0] - 1, height - player1_location[1] - 1)
-            if player1_location == player2_location:
-                player2_location = (0, 0)
-    pieces = []
-    candidates = []
-    considered = []
-    if symmetry:
-        if nb_pieces % 2 == 1 and (width % 2 == 0 or height % 2 == 0):
+            player2_location = (width - 1, height - 1)
+
+    return player1_location, player2_location
+
+
+# Generate pieces of cheese
+def generate_pieces_of_cheese(nb_pieces, width, height, symmetry, player1_location, player2_location):
+    # Simple case, no symmetry, simply select random locations among available ones
+    if not symmetry:
+        avaliable_locations = list({(x, y) for x in range(width) for y in range(height)} - {player1_location, player2_location})
+        return random.sample(avaliable_locations, max(1, min(nb_pieces, len(avaliable_locations))))
+
+    # Symmetric case
+    avaliable_locations = {(x, y) for x in range(width // 2) for y in range(height)}
+
+    # odd width case, add the first half of the central column
+    if width % 2 == 1:
+        avaliable_locations.update({(width // 2, y) for y in range(height // 2)})
+    avaliable_locations = list(avaliable_locations - {player1_location, player2_location})
+
+    # Odd number of pieces case, reserve the center cell
+    positions = []
+    if nb_pieces % 2 == 1:
+        if width % 2 == 0 or height % 2 == 0:
             sys.exit("The maze has even width or even height and thus cannot contain an odd number of pieces of cheese if symmetric.")
-        if nb_pieces % 2 == 1 and len(cheese_location) == 0:
-            pieces.append((width // 2, height // 2))
-            considered.append((width // 2, height // 2))
-            remaining = remaining - 1
-    for i in range(width):
-        for j in range(height):
-            if (
-                (not (symmetry) or (i, j) not in considered)
-                and (i, j) != player1_location
-                and (i, j) != player2_location
-                and (i, j) not in cheese_location
-            ):
-                candidates.append((i, j))
-                if symmetry:
-                    considered.append((i, j))
-                    considered.append((width - 1 - i, height - 1 - j))
-    while remaining > 0:
-        if len(candidates) == 0 and len(cheese_location) == 0:
-            sys.exit("Too many pieces of cheese for that dimension of maze")
-        chosen = cheese_location.pop() if len(cheese_location) > 0 else candidates[random.randrange(len(candidates))]
-        pieces.append(chosen)
+        center_cell = (width // 2, height // 2)
+        if center_cell in (player1_location, player2_location):
+            sys.exit("Cannot place odd number of pieces of cheese symmetrically when one player is at the center cell.")
+        positions.append(center_cell)
+
+    for x, y in random.sample(avaliable_locations, nb_pieces // 2):
+        positions.append((x, y))
+        positions.append((width - x - 1, height - y - 1))
+
+    return positions
+
+
+def generate_pieces_of_cheese_notrandom(width, height, symmetry, player1_location, player2_location, position_cheese):
+    positions = []
+
+    def check_position(i, j, symmetry=False):
+        nonlocal positions
+        i, j = int(i), int(j)
+        if (i, j) == player1_location or (i, j) == player2_location:
+            sys.exit(f"position_cheese invalid argument {(i, j)}: cheese on player")
+        if i < 0 or i >= height or j < 0 or j >= width:
+            sys.exit(f"position_cheese invalid argument {(i, j)}: {position_cheese}")
+        positions.append((i, j))
         if symmetry:
-            a, b = chosen
-            pieces.append((width - a - 1, height - 1 - b))
-            symmetric = (width - a - 1, height - 1 - b)
-            candidates = [i for i in candidates if i != symmetric]
-            remaining = remaining - 1
-        candidates = [i for i in candidates if i != chosen]
-        remaining = remaining - 1
-    if not (start_random):
-        pieces.append(player1_location)
-        pieces.append(player2_location)
-    return pieces[:-2], pieces[-2], pieces[-1]
+            check_position(height - 1 - i, width - 1 - j, False)
 
-
-def generate_pieces_of_cheese_notrandom(nb_pieces, width, height, symmetry, player1_location, player2_location, start_random, cheese_location):
-    position = []
     try:
-        with Path(cheese_location).open() as test:
-            for line in range(nb_pieces):
-                i, j = (int(i) for i in test.readline().split(","))
-                if (i, j) == player1_location or (i, j) == player2_location:
-                    sys.exit("cheese_location invalid argument: cheese on player")
-                if i < 0 or i >= height or j < 0 or j >= width:
-                    sys.exit("One of the cheese location is incorrect (line " + str(line + 1) + ")")
-                position.append((i, j))
+        with Path(position_cheese).open() as test:
+            pattern = r"(\d+).*(\d+)"
+            for line in enumerate(test, 1):
+                if match := re.match(pattern, line):
+                    check_position(int(match[1]), int(match[2]), symmetry)
     except FileNotFoundError:
-        if "," in cheese_location:
-            i, j = map(int, cheese_location.split(","))
-            if (i, j) == player1_location or (i, j) == player2_location:
-                sys.exit("cheese_location invalid argument: cheese on player")
-            if i < 0 or i >= height or j < 0 or j >= width:
-                sys.exit(f"cheese_location invalid argument: {cheese_location}")
-            position.append((i, j))
-        else:
-            print("cheese_location invalid argument", file=sys.stderr)
+        try:
+            raw = list(literal_eval(position_cheese))
+            if len(raw) > 0:
+                if isinstance(raw[0], tuple | list):  # Accept input as (i1,j1),(i2,j2),...,(in,jn) or [i1,j1], [i2,j2], ... , [in,jn]
+                    raw = list(raw)
+                elif isinstance(raw[0], int):  # Accept input as i1,j1,i2,j2,...,in,jn
+                    raw = [tuple(raw[i : i + 2]) for i in range(0, len(raw), 2)]
+                else:
+                    sys.exit(f"position_cheese invalid argument: {position_cheese}")
+                for cheese in raw:
+                    check_position(*cheese, symmetry)
+        except (ValueError, SyntaxError):
+            sys.exit(f"position_cheese invalid argument: {position_cheese}")
 
     # Transpose positions from i,j to x,y
-    position = [transpose_cell(pos, height, reverse=True) for pos in position]
+    positions = [transpose_cell(pos, height, reverse=True) for pos in positions]
 
-    return generate_pieces_of_cheese(nb_pieces, width, height, symmetry, player1_location, player2_location, start_random, cheese_location=position)
+    return positions

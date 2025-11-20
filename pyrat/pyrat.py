@@ -33,7 +33,7 @@ import pygame
 
 from pyrat.core.bot_utils import MOVE_E, MOVE_N, MOVE_O, MOVE_S, neighbors_map, transpose_cell
 from pyrat.core.display import run_display_loop
-from pyrat.core.maze import generate_maze, generate_pieces_of_cheese, generate_pieces_of_cheese_notrandom
+from pyrat.core.maze import generate_maze, generate_pieces_of_cheese, generate_pieces_of_cheese_notrandom, generate_players_positions
 from pyrat.core.parameters import args
 
 logger = logging.getLogger(__name__)
@@ -239,27 +239,35 @@ def run_game(screen, info_object):
     logger.debug("Generating pieces of cheese")
     if args.random_cheese:
         random.seed()
+
+    player1_location, player2_location = generate_players_positions(
+        width,
+        height,
+        args.symmetric,
+        player1_location,
+        player2_location,
+        args.start_random,
+    )
+
+    # Piece of cheese not specified in a maze file, generate them
     if pieces_of_cheese == []:
         if args.position_cheese:
-            pieces_of_cheese, player1_location, player2_location = generate_pieces_of_cheese_notrandom(
-                args.pieces,
+            pieces_of_cheese = generate_pieces_of_cheese_notrandom(
                 width,
                 height,
                 args.symmetric,
                 player1_location,
                 player2_location,
-                args.start_random,
                 args.position_cheese,
             )
         else:
-            pieces_of_cheese, player1_location, player2_location = generate_pieces_of_cheese(
+            pieces_of_cheese = generate_pieces_of_cheese(
                 args.pieces,
                 width,
                 height,
                 args.symmetric,
                 player1_location,
                 player2_location,
-                args.start_random,
             )
 
     if args.save:
