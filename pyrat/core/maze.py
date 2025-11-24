@@ -114,7 +114,7 @@ def generate_maze(width, height, target_density, connected, symmetry, mud_densit
 
         # Then connect it
         if connected:
-            connected = [[0] * height] * width
+            connected = [[0 for x in range(height)] for y in range(width)]
             possible_border = [(0, height - 1)]
             connected[0][height - 1] = 1
             connected_region(maze, (0, height - 1), connected, possible_border)
